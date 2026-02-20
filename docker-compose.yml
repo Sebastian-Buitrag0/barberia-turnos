@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: barberia-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: barberia_turnos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - barberia-network
+
+  # .NET 8 Backend
+  backend:
+    build:
+      context: ./backend/BarberiaTurnos
+      dockerfile: Dockerfile
+    container_name: barberia-backend
+    depends_on:
+      - db
+    environment:
+      # Override the connection string to use the 'db' container
+      - ConnectionStrings__DefaultConnection=Host=db;Database=barberia_turnos;Username=postgres;Password=postgres
+      # Forward the Twilio configuration if needed in production
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-}
+      - Twilio__FromNumber=${TWILIO_FROM_NUMBER:-+14155238886}
+      - Twilio__Enabled=true
+      - Jwt__Key=esta_es_una_clave_secreta_muy_larga_y_segura_para_desarrollo_123456
+      - Jwt__Issuer=BarberiaTurnos
+      - Jwt__Audience=BarberiaTurnosUsers
+    ports:
+      - "8080:8080" # Maps local port 8080 to container port 8080
+    networks:
+      - barberia-network
+
+  # Vue / Vite Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Point the frontend to evaluate API requests to the external host port mapping
+        - VITE_API_URL=http://localhost:8080
+    container_name: barberia-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80" # Map to standard HTTP port
+    networks:
+      - barberia-network
+
+networks:
+  barberia-network:
+    driver: bridge
+
+volumes:
+  pgdata:

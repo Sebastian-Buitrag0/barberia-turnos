@@ -45,7 +45,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173") // Restrict to frontend
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost") // Restrict to frontend and docker
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR/Cookies if used
