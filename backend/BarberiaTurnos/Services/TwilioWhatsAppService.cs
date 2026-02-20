@@ -20,6 +20,11 @@ public class TwilioWhatsAppService : IWhatsAppService
         await SendMessageAsync(telefono, $"🪒 ¡Es tu turno! Turno #{turnoDiario}. {barberoNombre} te está esperando. ¡Pasa a la silla!");
     }
 
+    public async Task SendFirstInLineNotification(string telefono, int turnoDiario)
+    {
+        await SendMessageAsync(telefono, $"🚨 ¡Estás de primero en la fila (Turno #{turnoDiario})! Atento al próximo llamado del barbero.");
+    }
+
     public async Task SendNextInLineNotification(string telefono, int turnoDiario)
     {
         await SendMessageAsync(telefono, $"⏳ ¡Prepárate! Eres el siguiente (Turno #{turnoDiario}). Por favor acércate a la zona de espera.");

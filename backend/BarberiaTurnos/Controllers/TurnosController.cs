@@ -25,6 +25,18 @@ public class TurnosController : ControllerBase
         _whatsApp = whatsApp;
     }
 
+    // GET /api/turnos/barberos
+    [HttpGet("barberos")]
+    public async Task<ActionResult<List<UsuarioResponseDto>>> GetBarberos()
+    {
+        var barberos = await _db.Usuarios
+            .Where(u => u.Rol == "Barbero")
+            .Select(u => new UsuarioResponseDto(u.Id, u.Nombre, u.Rol))
+            .ToListAsync();
+        
+        return Ok(barberos);
+    }
+
     // GET /api/turnos/hoy
     [HttpGet("hoy")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetTurnosHoy()
@@ -145,19 +157,51 @@ public class TurnosController : ControllerBase
             TurnoDiario = ultimoTurno + 1,
             Estado = "EnCola",
             ClienteId = cliente.Id,
+            BarberoId = dto.BarberoId, // Assign preferred barber
             FechaCreacion = DateTime.UtcNow
         };
 
         _db.Turnos.Add(turno);
         await _db.SaveChangesAsync();
-
         await _hub.Clients.All.SendAsync("QueueUpdated");
-
+        _ = CheckQueueNotifications();
         return Ok(new TurnoResponseDto(
-            turno.Id, turno.TurnoDiario, turno.Estado,
-            cliente.Nombre, cliente.Telefono, null, null, turno.FechaCreacion, null
+            turno.Id,
+            turno.TurnoDiario,
+            turno.Estado,
+            cliente.Nombre,
+            cliente.Telefono, // Added Telefono
+            null, // BarberoNombre
+            turno.Total,
+            turno.FechaCreacion, // Added FechaCreacion
+            new List<DetalleDto>()
         ));
     }
+
+    // POST /api/turnos/cancelar (cliente cancela su propio turno)
+    [HttpPost("cancelar")]
+    public async Task<IActionResult> CancelarTurno([FromBody] CancelarTurnoDto dto)
+    {
+        var hoy = DateTime.UtcNow.Date;
+        var turno = await _db.Turnos
+            .Include(t => t.Cliente)
+            .FirstOrDefaultAsync(t => t.Cliente.Telefono == dto.Telefono 
+                && t.FechaCreacion.Date == hoy
+                && (t.Estado == "EnCola" || t.Estado == "Llamado"));
+
+        if (turno == null)
+            return NotFound(new { message = "No tienes un turno activo que puedas cancelar." });
+
+        _db.Turnos.Remove(turno);
+        await _db.SaveChangesAsync();
+
+        await _hub.Clients.All.SendAsync("QueueUpdated");
+        _ = CheckQueueNotifications();
+
+        return NoContent();
+    }
+
+
 
     // POST /api/turnos/registrar-admin (admin agrega a la fila manualmente)
     [HttpPost("registrar-admin")]
@@ -186,6 +230,7 @@ public class TurnosController : ControllerBase
             TurnoDiario = ultimoTurno + 1,
             Estado = "EnCola",
             ClienteId = cliente.Id,
+            BarberoId = dto.BarberoId, // Assign preferred barber
             FechaCreacion = DateTime.UtcNow
         };
 
@@ -193,6 +238,7 @@ public class TurnosController : ControllerBase
         await _db.SaveChangesAsync();
 
         await _hub.Clients.All.SendAsync("QueueUpdated");
+        _ = CheckQueueNotifications();
 
         return Ok(new TurnoResponseDto(
             turno.Id, turno.TurnoDiario, turno.Estado,
@@ -215,11 +261,13 @@ public class TurnosController : ControllerBase
         var hoy = DateTime.UtcNow.Date;
         var turno = await _db.Turnos
             .Include(t => t.Cliente)
-            .Where(t => t.FechaCreacion.Date == hoy && t.Estado == "EnCola")
+            .Where(t => t.FechaCreacion.Date == hoy 
+                && t.Estado == "EnCola"
+                && (t.BarberoId == null || t.BarberoId == barberoId)) // Any barber or specific barber
             .OrderBy(t => t.TurnoDiario)
             .FirstOrDefaultAsync();
 
-        if (turno == null) return NotFound(new { message = "No hay turnos en cola" });
+        if (turno == null) return NotFound(new { message = "No hay turnos en cola disponibles para este barbero" });
 
         turno.Estado = "Llamado";
         turno.BarberoId = barberoId;
@@ -304,6 +352,7 @@ public class TurnosController : ControllerBase
         await _db.SaveChangesAsync();
 
         await _hub.Clients.All.SendAsync("QueueUpdated");
+        _ = CheckQueueNotifications();
         return Ok(new { message = "Turno cobrado y cerrado" });
     }
 
@@ -345,37 +394,38 @@ public class TurnosController : ControllerBase
             .Include(t => t.Cliente)
             .Where(t => t.FechaCreacion.Date == hoy && t.Estado == "EnCola")
             .OrderBy(t => t.TurnoDiario)
-            .Take(2)
+            .Take(3)
             .ToListAsync();
 
         if (cola.Count == 0) return;
 
-        // Position 1 (Next)
-        var next = cola[0];
-        if (next.NivelAviso < 2)
+        // Position 1 (First in Line)
+        var first = cola[0];
+        if (first.NivelAviso < 3)
         {
-             await _whatsApp.SendNextInLineNotification(next.Cliente.Telefono, next.TurnoDiario);
-             next.NivelAviso = 2;
+             await _whatsApp.SendFirstInLineNotification(first.Cliente.Telefono, first.TurnoDiario);
+             first.NivelAviso = 3;
         }
 
-        // Position 2 (Approaching)
+        // Position 2 (Next)
         if (cola.Count > 1)
         {
              var second = cola[1];
-             if (second.NivelAviso < 1)
+             if (second.NivelAviso < 2)
              {
-                 var busyBarbers = await _db.Turnos
-                     .Where(t => t.FechaCreacion.Date == hoy && t.Estado == "EnSilla" && t.FechaInicioAtencion != null)
-                     .ToListAsync();
+                  await _whatsApp.SendNextInLineNotification(second.Cliente.Telefono, second.TurnoDiario);
+                  second.NivelAviso = 2;
+             }
+        }
 
-                 // Check if any barber has been working > 20 mins
-                 var anyLongRunning = busyBarbers.Any(t => (DateTime.UtcNow - t.FechaInicioAtencion.Value).TotalMinutes >= 20);
-
-                 if (anyLongRunning)
-                 {
-                      await _whatsApp.SendApproachingNotification(second.Cliente.Telefono, second.TurnoDiario);
-                      second.NivelAviso = 1;
-                 }
+        // Position 3 (Approaching)
+        if (cola.Count > 2)
+        {
+             var third = cola[2];
+             if (third.NivelAviso < 1)
+             {
+                  await _whatsApp.SendApproachingNotification(third.Cliente.Telefono, third.TurnoDiario);
+                  third.NivelAviso = 1;
              }
         }
         await _db.SaveChangesAsync();
