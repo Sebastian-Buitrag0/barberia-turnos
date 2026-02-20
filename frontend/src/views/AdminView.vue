@@ -445,7 +445,6 @@ onUnmounted(() => {
                 <tr>
                   <th class="py-3 px-4">ID</th>
                   <th class="py-3 px-4">Nombre</th>
-                  <th class="py-3 px-4">PIN de Acceso</th>
                   <th class="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -458,11 +457,6 @@ onUnmounted(() => {
                   <td class="py-3 px-4 text-slate-500">#{{ barbero.id }}</td>
                   <td class="py-3 px-4 font-medium text-white">
                     {{ barbero.nombre }}
-                  </td>
-                  <td
-                    class="py-3 px-4 font-mono text-slate-300 tracking-widest"
-                  >
-                    {{ barbero.pin }}
                   </td>
                   <td class="py-3 px-4 text-right space-x-2">
                     <button
