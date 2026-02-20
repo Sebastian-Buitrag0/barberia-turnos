@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
 
 namespace BarberiaTurnos.Controllers;
 
+[Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class UsuariosController : ControllerBase
@@ -23,7 +25,7 @@ public class UsuariosController : ControllerBase
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol))
             .ToListAsync();
         
         return Ok(barberos);
@@ -47,7 +49,7 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol));
     }
 
     // PUT: api/usuarios/barberos/{id}
