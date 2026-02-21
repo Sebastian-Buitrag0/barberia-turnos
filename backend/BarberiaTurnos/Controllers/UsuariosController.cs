@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
@@ -18,21 +19,26 @@ public class UsuariosController : ControllerBase
     }
 
     // GET: api/usuarios/barberos
+    [Authorize(Roles = "Admin")]
     [HttpGet("barberos")]
     public async Task<ActionResult<List<UsuarioAdminResponseDto>>> GetBarberosAdmin()
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin, u.IsAvailable))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);
     }
 
     // POST: api/usuarios/barberos
+    [Authorize(Roles = "Admin")]
     [HttpPost("barberos")]
     public async Task<ActionResult<UsuarioAdminResponseDto>> CrearBarbero([FromBody] CrearModificarBarberoDto dto)
     {
+        if (string.IsNullOrEmpty(dto.Pin))
+            return BadRequest(new { message = "El PIN es obligatorio." });
+
         if (await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
             return BadRequest(new { message = "El PIN ya está en uso." });
 
@@ -47,10 +53,11 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin, nuevoBarbero.IsAvailable));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.IsAvailable));
     }
 
     // PUT: api/usuarios/barberos/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("barberos/{id}")]
     public async Task<IActionResult> EditarBarbero(int id, [FromBody] CrearModificarBarberoDto dto)
     {
@@ -59,18 +66,22 @@ public class UsuariosController : ControllerBase
         if (barbero == null || barbero.Rol != "Barbero")
             return NotFound(new { message = "Barbero no encontrado." });
 
-        if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
-            return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+        if (!string.IsNullOrEmpty(dto.Pin))
+        {
+            if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
+                return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+
+            barbero.Pin = dto.Pin;
+        }
 
         barbero.Nombre = dto.Nombre;
-        barbero.Pin = dto.Pin;
-
         await _db.SaveChangesAsync();
 
         return NoContent();
     }
 
     // DELETE: api/usuarios/barberos/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("barberos/{id}")]
     public async Task<IActionResult> EliminarBarbero(int id)
     {
