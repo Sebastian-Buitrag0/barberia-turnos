@@ -3,6 +3,7 @@ using System;
 using BarberiaTurnos.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BarberiaTurnos.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260221024520_AddCierreCaja")]
+    partial class AddCierreCaja
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -212,9 +215,6 @@ namespace BarberiaTurnos.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("text");
@@ -235,7 +235,6 @@ namespace BarberiaTurnos.Migrations
                         new
                         {
                             Id = 1,
-                            IsAvailable = false,
                             Nombre = "Admin",
                             Pin = "0000",
                             Rol = "Admin"
@@ -243,7 +242,6 @@ namespace BarberiaTurnos.Migrations
                         new
                         {
                             Id = 2,
-                            IsAvailable = false,
                             Nombre = "Barbero 1",
                             Pin = "1111",
                             Rol = "Barbero"
@@ -251,7 +249,6 @@ namespace BarberiaTurnos.Migrations
                         new
                         {
                             Id = 3,
-                            IsAvailable = false,
                             Nombre = "Barbero 2",
                             Pin = "2222",
                             Rol = "Barbero"

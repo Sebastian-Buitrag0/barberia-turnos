@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Servicio> Servicios => Set<Servicio>();
     public DbSet<Turno> Turnos => Set<Turno>();
     public DbSet<TurnoDetalle> TurnoDetalles => Set<TurnoDetalle>();
+    public DbSet<CierreCaja> CierresCaja => Set<CierreCaja>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

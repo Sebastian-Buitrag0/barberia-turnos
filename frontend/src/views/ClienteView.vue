@@ -397,6 +397,7 @@ onUnmounted(() => {
               </div>
               <input
                 v-model="telefonoNumero"
+                @input="telefonoNumero = $event.target.value.replace(/\D/g, '')"
                 type="tel"
                 class="block w-full pl-10 pr-3 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm"
                 placeholder="Ej. 300 123 4567"

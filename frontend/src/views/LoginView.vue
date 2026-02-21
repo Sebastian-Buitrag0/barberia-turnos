@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import api from "../services/api";
 import { Lock, Loader2 } from "lucide-vue-next";
@@ -8,6 +8,10 @@ const router = useRouter();
 const pin = ref("");
 const error = ref(null);
 const loading = ref(false);
+
+onMounted(() => {
+  pin.value = "";
+});
 
 const login = async () => {
   if (!pin.value) return;
@@ -27,6 +31,9 @@ const login = async () => {
       localStorage.setItem("barbero_user", JSON.stringify(userData));
       localStorage.setItem("admin_user", JSON.stringify(userData));
 
+      // Limpiar PIN antes de redirigir
+      pin.value = "";
+
       // Redirigir según el rol
       const role = userData.rol?.trim();
       if (role === "Admin") {
@@ -38,9 +45,11 @@ const login = async () => {
       }
     } else {
       error.value = "PIN incorrecto o acceso no autorizado";
+      pin.value = "";
     }
   } catch (e) {
     error.value = "PIN incorrecto";
+    pin.value = "";
   } finally {
     loading.value = false;
   }
@@ -66,6 +75,7 @@ const login = async () => {
         v-model="pin"
         type="password"
         maxlength="4"
+        autocomplete="new-password"
         class="block w-full text-center text-4xl tracking-[0.5em] py-4 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-mono placeholder-slate-700"
         placeholder="••••"
       />

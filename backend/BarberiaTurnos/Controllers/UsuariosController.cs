@@ -23,7 +23,7 @@ public class UsuariosController : ControllerBase
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin, u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);
@@ -47,7 +47,7 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin, nuevoBarbero.IsAvailable));
     }
 
     // PUT: api/usuarios/barberos/{id}
@@ -90,5 +90,22 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // POST: api/usuarios/me/disponibilidad
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Barbero")]
+    [HttpPost("me/disponibilidad")]
+    public async Task<ActionResult> ToggleDisponibilidad()
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+        var barbero = await _db.Usuarios.FindAsync(userId);
+        if (barbero == null) return NotFound("Barbero no encontrado");
+
+        barbero.IsAvailable = !barbero.IsAvailable;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { isAvailable = barbero.IsAvailable });
     }
 }

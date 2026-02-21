@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import api from "../services/api";
 import * as signalRService from "../services/signalr";
 import QrcodeVue from "qrcode.vue";
+import DashboardEstadisticas from "./admin/DashboardEstadisticas.vue";
 import {
   Lock,
   Loader2,
@@ -20,6 +21,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Scissors,
 } from "lucide-vue-next";
 
 const pin = ref("");
@@ -32,7 +34,7 @@ const loading = ref(false);
 const turnosPorPagar = ref([]);
 const colaCompleta = ref([]); // Ahora trae todos los del día
 // Form admin registra
-const form = ref({ nombre: "", telefono: "" });
+const form = ref({ nombre: "", telefono: "", barberoId: null });
 const formSuccess = ref(null);
 
 // Barberos Gestión Data
@@ -135,9 +137,13 @@ const confirmarCobro = async () => {
 const registrarCliente = async () => {
   if (!form.value.nombre || !form.value.telefono) return;
   try {
-    await api.registrarAdmin(form.value.nombre, form.value.telefono);
+    await api.registrarAdmin(
+      form.value.nombre,
+      form.value.telefono,
+      form.value.barberoId,
+    );
     formSuccess.value = `Turno creado para ${form.value.nombre}`;
-    form.value = { nombre: "", telefono: "" };
+    form.value = { nombre: "", telefono: "", barberoId: null };
     setTimeout(() => (formSuccess.value = null), 3000);
     // SignalR actualizará la tabla
   } catch (e) {
@@ -257,8 +263,13 @@ onUnmounted(() => {
       <div
         class="glass rounded-2xl p-6 border border-slate-800 shadow-xl min-h-[400px]"
       >
+        <DashboardEstadisticas v-if="activeTab === 'stats'" />
+
         <!-- Por Pagar -->
-        <div v-if="activeTab === 'porpagar'">
+        <div
+          v-if="activeTab === 'porpagar'"
+          class="space-y-6 animate-in fade-in"
+        >
           <div
             v-if="turnosPorPagar.length === 0"
             class="flex flex-col items-center justify-center py-20 text-slate-500"
@@ -334,99 +345,6 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Estadísticas -->
-        <div v-if="activeTab === 'stats'">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Card Ingresos -->
-            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-              <div class="flex items-center gap-4 mb-2">
-                <div class="p-3 bg-green-500/10 rounded-lg text-green-500">
-                  <Wallet class="w-6 h-6" />
-                </div>
-                <div>
-                  <div class="text-sm text-slate-400 font-medium">
-                    Ingresos Totales
-                  </div>
-                  <div class="text-3xl font-black text-white">
-                    ${{ stats.totalIngresos }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card Atendidos -->
-            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-              <div class="flex items-center gap-4 mb-2">
-                <div class="p-3 bg-blue-500/10 rounded-lg text-blue-500">
-                  <Users class="w-6 h-6" />
-                </div>
-                <div>
-                  <div class="text-sm text-slate-400 font-medium">
-                    Clientes Atendidos
-                  </div>
-                  <div class="text-3xl font-black text-white">
-                    {{ stats.clientesAtendidos }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card En Cola -->
-            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-              <div class="flex items-center gap-4 mb-2">
-                <div class="p-3 bg-purple-500/10 rounded-lg text-purple-500">
-                  <List class="w-6 h-6" />
-                </div>
-                <div>
-                  <div class="text-sm text-slate-400 font-medium">
-                    En Espera
-                  </div>
-                  <div class="text-3xl font-black text-white">
-                    {{ stats.clientesEnCola }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabla Barberos -->
-          <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <TrendingUp class="w-5 h-5 text-slate-400" /> Rendimiento por
-            Barbero
-          </h3>
-          <div class="overflow-hidden rounded-xl border border-slate-800">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-slate-900 text-slate-400">
-                <tr>
-                  <th class="py-3 px-4">Barbero</th>
-                  <th class="py-3 px-4 text-center">Clientes</th>
-                  <th class="py-3 px-4 text-right">Generado</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800">
-                <tr
-                  v-for="(data, nombre) in stats.porBarbero"
-                  :key="nombre"
-                  class="bg-slate-900/30"
-                >
-                  <td class="py-3 px-4 font-medium text-white">{{ nombre }}</td>
-                  <td class="py-3 px-4 text-center text-slate-300">
-                    {{ data.count }}
-                  </td>
-                  <td class="py-3 px-4 text-right font-bold text-green-400">
-                    ${{ data.total }}
-                  </td>
-                </tr>
-                <tr v-if="Object.keys(stats.porBarbero).length === 0">
-                  <td colspan="3" class="py-8 text-center text-slate-500">
-                    Sin datos registrados hoy
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <!-- Gestión de Barberos -->
         <div v-if="activeTab === 'barberos'">
           <div class="flex items-center justify-between mb-6">
@@ -445,6 +363,7 @@ onUnmounted(() => {
                 <tr>
                   <th class="py-3 px-4">ID</th>
                   <th class="py-3 px-4">Nombre</th>
+                  <th class="py-3 px-4 text-center">Estado</th>
                   <th class="py-3 px-4">PIN de Acceso</th>
                   <th class="py-3 px-4 text-right">Acciones</th>
                 </tr>
@@ -458,6 +377,18 @@ onUnmounted(() => {
                   <td class="py-3 px-4 text-slate-500">#{{ barbero.id }}</td>
                   <td class="py-3 px-4 font-medium text-white">
                     {{ barbero.nombre }}
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <span
+                      class="px-2 py-1 rounded-full text-xs font-bold border"
+                      :class="
+                        barbero.isAvailable
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      "
+                    >
+                      {{ barbero.isAvailable ? "Disponible" : "Ausente" }}
+                    </span>
                   </td>
                   <td
                     class="py-3 px-4 font-mono text-slate-300 tracking-widest"
@@ -513,10 +444,35 @@ onUnmounted(() => {
               >
               <input
                 v-model="form.telefono"
-                type="text"
+                @input="form.telefono = $event.target.value.replace(/\D/g, '')"
+                type="tel"
                 class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-slate-500 transition-colors"
                 required
               />
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-slate-400"
+                >Barbero de Preferencia (Opcional)</label
+              >
+              <div class="relative group">
+                <div
+                  class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                >
+                  <Scissors
+                    class="h-5 w-5 text-slate-500 group-focus-within:text-slate-300 transition-colors"
+                  />
+                </div>
+                <select
+                  v-model="form.barberoId"
+                  class="block w-full pl-10 pr-3 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-slate-500 transition-colors appearance-none"
+                >
+                  <option :value="null">Cualquier Barbero</option>
+                  <option v-for="b in listaBarberos" :key="b.id" :value="b.id">
+                    {{ b.nombre }}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <div

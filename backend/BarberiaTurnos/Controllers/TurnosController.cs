@@ -30,8 +30,8 @@ public class TurnosController : ControllerBase
     public async Task<ActionResult<List<UsuarioResponseDto>>> GetBarberos()
     {
         var barberos = await _db.Usuarios
-            .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioResponseDto(u.Id, u.Nombre, u.Rol))
+            .Where(u => u.Rol == "Barbero" && u.IsAvailable)
+            .Select(u => new UsuarioResponseDto(u.Id, u.Nombre, u.Rol, u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);

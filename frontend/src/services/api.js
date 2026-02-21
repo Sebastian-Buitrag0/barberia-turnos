@@ -41,6 +41,8 @@ export default {
 
   // Barbero / Admin (Protected)
   login: (pin) => api.post("/auth/login", { pin }).then((res) => res.data),
+  toggleDisponibilidad: () =>
+    api.post("/usuarios/me/disponibilidad").then((res) => res.data),
 
   llamar: (barberoId) =>
     api.post("/turnos/llamar", { barberoId }).then((res) => res.data),
@@ -51,17 +53,28 @@ export default {
   // Admin
   getPorPagar: () => api.get("/turnos/porpagar").then((res) => res.data),
   cobrar: (turnoId) => api.post("/turnos/cobrar", { turnoId }),
-  registrarAdmin: (nombre, telefono) =>
+  registrarAdmin: (nombre, telefono, barberoId) =>
     api
-      .post("/turnos/registrar-admin", { nombre, telefono })
+      .post("/turnos/registrar-admin", { nombre, telefono, barberoId })
       .then((res) => res.data),
 
   adminGetBarberos: () => api.get("/usuarios/barberos").then((res) => res.data),
   adminCrearBarbero: (nombre, pin) =>
     api.post("/usuarios/barberos", { nombre, pin }).then((res) => res.data),
   adminEditarBarbero: (id, nombre, pin) =>
-    api.put(`/usuarios/barberos/${id}`, { nombre, pin }),
-  adminEliminarBarbero: (id) => api.delete(`/usuarios/barberos/${id}`),
+    api
+      .put(`/usuarios/barberos/${id}`, { nombre, pin })
+      .then((res) => res.data),
+  adminEliminarBarbero: (id) =>
+    api.delete(`/usuarios/barberos/${id}`).then((res) => res.data),
+
+  // Estadisticas & Cierre
+  getResumenHoy: () =>
+    api.get("/estadisticas/resumen-hoy").then((res) => res.data),
+  cerrarCaja: () =>
+    api.post("/estadisticas/cerrar-caja").then((res) => res.data),
+  getHistorico: () =>
+    api.get("/estadisticas/historico").then((res) => res.data),
 
   // Servicios
   getServicios: () => api.get("/servicios").then((res) => res.data),

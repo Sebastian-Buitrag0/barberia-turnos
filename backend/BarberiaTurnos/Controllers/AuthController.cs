@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
 
         return Ok(new 
         { 
-            user = new UsuarioResponseDto(usuario.Id, usuario.Nombre, usuario.Rol),
+            user = new UsuarioResponseDto(usuario.Id, usuario.Nombre, usuario.Rol, usuario.IsAvailable),
             token 
         });
     }

@@ -14,6 +14,7 @@ import {
   Loader2,
   User,
   Clock,
+  Phone,
 } from "lucide-vue-next";
 
 const pin = ref("");
@@ -57,6 +58,45 @@ const cargarDatos = async () => {
   } catch (e) {
     console.error(e);
     showMessage("Error cargando la cola de turnos", "error");
+  }
+};
+
+const isToggleLoading = ref(false);
+const showConfirmModal = ref(false);
+
+const confirmarDisponibilidad = () => {
+  if (!usuario.value) return;
+  showConfirmModal.value = true;
+};
+
+const executeToggleDisponibilidad = async () => {
+  if (!usuario.value) return;
+  showConfirmModal.value = false;
+
+  isToggleLoading.value = true;
+  try {
+    const response = await api.toggleDisponibilidad();
+
+    // Update local user state
+    usuario.value.isAvailable = response.isAvailable;
+    localStorage.setItem("barbero_user", JSON.stringify(usuario.value));
+
+    if (response.isAvailable) {
+      showMessage(
+        "Has marcado tu entrada. Ahora estás disponible para recibir clientes.",
+        "success",
+      );
+    } else {
+      showMessage(
+        "Has marcado tu salida. Ya no recibirás nuevos clientes.",
+        "info",
+      );
+    }
+  } catch (error) {
+    console.error("Error al cambiar disponibilidad:", error);
+    showMessage("Ocurrió un error al intentar cambiar tu estado.", "error");
+  } finally {
+    isToggleLoading.value = false;
   }
 };
 
@@ -189,8 +229,22 @@ onUnmounted(() => {
           </div>
 
           <button
+            @click="confirmarDisponibilidad"
+            :disabled="isToggleLoading"
+            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all disabled:opacity-50"
+            :class="
+              usuario.isAvailable
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+            "
+          >
+            <Clock class="w-4 h-4" />
+            {{ usuario.isAvailable ? "Registrar Salida" : "Registrar Llegada" }}
+          </button>
+
+          <button
             @click="logout"
-            class="text-sm text-slate-400 hover:text-white underline decoration-slate-700 hover:decoration-white transition-all"
+            class="text-sm text-slate-400 hover:text-white underline decoration-slate-700 hover:decoration-white transition-all ml-2"
           >
             Salir
           </button>
@@ -401,6 +455,56 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Confirmation Modal for Arrival/Departure -->
+    <div
+      v-if="showConfirmModal"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        class="glass w-full max-w-sm rounded-2xl p-6 border border-slate-700 shadow-2xl animate-in zoom-in-95 text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-slate-800 text-slate-400"
+        >
+          <Clock class="w-8 h-8" />
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Confirmar Acción</h3>
+        <p class="text-slate-400 mb-6 font-medium">
+          ¿Estás seguro de que deseas
+          <strong class="text-white">{{
+            usuario?.isAvailable
+              ? "registrar tu SALIDA"
+              : "registrar tu LLEGADA"
+          }}</strong
+          >?
+          <span class="block mt-2 text-sm text-slate-500 font-normal"
+            >Tu estado se actualizará en la pantalla principal de
+            clientes.</span
+          >
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            @click="showConfirmModal = false"
+            class="py-3 rounded-xl font-bold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="executeToggleDisponibilidad"
+            class="py-3 rounded-xl font-bold transition-all text-white shadow-lg"
+            :class="
+              usuario?.isAvailable
+                ? 'bg-slate-600 hover:bg-slate-500 border border-slate-500 shadow-slate-900/50'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/30'
+            "
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Feedback Modal -->
     <div
       v-if="showFeedback"
@@ -438,6 +542,106 @@ onUnmounted(() => {
         >
           Entendido
         </button>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal for Arrival/Departure -->
+    <div
+      v-if="showConfirmModal"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+    >
+      <div
+        class="glass w-full max-w-sm rounded-2xl p-6 border border-slate-700 shadow-2xl animate-in zoom-in-95 text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-slate-800 text-slate-400"
+        >
+          <Clock class="w-8 h-8" />
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Confirmar Acción</h3>
+        <p class="text-slate-400 mb-6 font-medium">
+          ¿Estás seguro de que deseas
+          <strong class="text-white">{{
+            usuario?.isAvailable
+              ? "registrar tu SALIDA"
+              : "registrar tu LLEGADA"
+          }}</strong
+          >?
+          <span class="block mt-2 text-sm text-slate-500 font-normal"
+            >Tu estado se actualizará en la pantalla principal de
+            clientes.</span
+          >
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            @click="showConfirmModal = false"
+            class="py-3 rounded-xl font-bold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="executeToggleDisponibilidad"
+            class="py-3 rounded-xl font-bold transition-all text-white shadow-lg"
+            :class="
+              usuario?.isAvailable
+                ? 'bg-slate-600 hover:bg-slate-500 border border-slate-500 shadow-slate-900/50'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/30'
+            "
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal for Arrival/Departure -->
+    <div
+      v-if="showConfirmModal"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+    >
+      <div
+        class="glass w-full max-w-sm rounded-2xl p-6 border border-slate-700 shadow-2xl animate-in zoom-in-95 text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-slate-800 text-slate-400"
+        >
+          <Clock class="w-8 h-8" />
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Confirmar Acción</h3>
+        <p class="text-slate-400 mb-6 font-medium">
+          ¿Estás seguro de que deseas
+          <strong class="text-white">{{
+            usuario?.isAvailable
+              ? "registrar tu SALIDA"
+              : "registrar tu LLEGADA"
+          }}</strong
+          >?
+          <span class="block mt-2 text-sm text-slate-500 font-normal"
+            >Tu estado se actualizará en la pantalla principal de
+            clientes.</span
+          >
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            @click="showConfirmModal = false"
+            class="py-3 rounded-xl font-bold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="executeToggleDisponibilidad"
+            class="py-3 rounded-xl font-bold transition-all text-white shadow-lg"
+            :class="
+              usuario?.isAvailable
+                ? 'bg-slate-600 hover:bg-slate-500 border border-slate-500 shadow-slate-900/50'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/30'
+            "
+          >
+            Confirmar
+          </button>
+        </div>
       </div>
     </div>
   </div>
