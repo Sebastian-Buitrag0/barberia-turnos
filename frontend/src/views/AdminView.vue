@@ -393,7 +393,7 @@ onUnmounted(() => {
                   <td
                     class="py-3 px-4 font-mono text-slate-300 tracking-widest"
                   >
-                    {{ barbero.pin }}
+                    ******
                   </td>
                   <td class="py-3 px-4 text-right space-x-2">
                     <button
@@ -626,11 +626,15 @@ onUnmounted(() => {
               maxlength="4"
               pattern="[0-9]{4}"
               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-center font-mono tracking-widest text-2xl focus:border-slate-500 transition-colors"
-              required
+              :required="!barberoForm.id"
               placeholder="••••"
             />
             <p class="text-xs text-slate-500 mt-1">
-              Debe ser un número de 4 dígitos exactos.
+              {{
+                barberoForm.id
+                  ? "Dejar vacío para mantener el actual."
+                  : "Debe ser un número de 4 dígitos exactos."
+              }}
             </p>
           </div>
 
