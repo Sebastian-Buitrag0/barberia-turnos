@@ -12,17 +12,23 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IJwtService _jwt;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public AuthController(AppDbContext db, IJwtService jwt)
+    public AuthController(AppDbContext db, IJwtService jwt, IPasswordHasher passwordHasher)
     {
         _db = db;
         _jwt = jwt;
+        _passwordHasher = passwordHasher;
     }
 
     [HttpPost("login")]
     public async Task<ActionResult<object>> Login([FromBody] LoginDto dto)
     {
-        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Pin == dto.Pin);
+        // Fetch all users to verify hashed PINs
+        // Note: This is acceptable for a small number of users.
+        var usuarios = await _db.Usuarios.ToListAsync();
+        var usuario = usuarios.FirstOrDefault(u => _passwordHasher.Verify(dto.Pin, u.Pin));
+
         if (usuario == null)
             return Unauthorized(new { message = "PIN incorrecto" });
 
