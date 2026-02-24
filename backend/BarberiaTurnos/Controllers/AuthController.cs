@@ -22,7 +22,9 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<object>> Login([FromBody] LoginDto dto)
     {
-        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Pin == dto.Pin);
+        var usuarios = await _db.Usuarios.ToListAsync();
+        var usuario = usuarios.FirstOrDefault(u => PasswordHasher.Verify(u.Pin, dto.Pin));
+
         if (usuario == null)
             return Unauthorized(new { message = "PIN incorrecto" });
 
