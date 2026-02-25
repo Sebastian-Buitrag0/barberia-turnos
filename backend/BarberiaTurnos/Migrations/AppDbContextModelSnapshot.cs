@@ -237,7 +237,7 @@ namespace BarberiaTurnos.Migrations
                             Id = 1,
                             IsAvailable = false,
                             Nombre = "Admin",
-                            Pin = "0000",
+                            Pin = "x9X3VhoQbtpKPoEFTBa9Jg==.ZTD76QHcYwdtqgS3lZMmt8YM2B0wHtcjzOr+QtxMaak=",
                             Rol = "Admin"
                         },
                         new
@@ -245,7 +245,7 @@ namespace BarberiaTurnos.Migrations
                             Id = 2,
                             IsAvailable = false,
                             Nombre = "Barbero 1",
-                            Pin = "1111",
+                            Pin = "xbi/qzvW133SbCAC2wwrfQ==.NRHoKtUjfWP3659XDRbw2cw1V1LQ/l83L2TInVok6EA=",
                             Rol = "Barbero"
                         },
                         new
@@ -253,7 +253,7 @@ namespace BarberiaTurnos.Migrations
                             Id = 3,
                             IsAvailable = false,
                             Nombre = "Barbero 2",
-                            Pin = "2222",
+                            Pin = "Ad39b3TAlOI6bVo5b5ljgQ==.d/ADKEn0cw3q201UNPDjLxJr2cIpdqqyAU5DFhneVvU=",
                             Rol = "Barbero"
                         });
                 });

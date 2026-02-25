@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
+using BarberiaTurnos.Services;
 
 namespace BarberiaTurnos.Controllers;
 
@@ -23,7 +24,7 @@ public class UsuariosController : ControllerBase
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin, u.IsAvailable))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, "****", u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);
@@ -33,13 +34,15 @@ public class UsuariosController : ControllerBase
     [HttpPost("barberos")]
     public async Task<ActionResult<UsuarioAdminResponseDto>> CrearBarbero([FromBody] CrearModificarBarberoDto dto)
     {
-        if (await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
+        // 🛡️ Sentinel: Verify PIN uniqueness across all users (checking hashes)
+        var users = await _db.Usuarios.ToListAsync();
+        if (users.Any(u => PasswordHasher.Verify(dto.Pin, u.Pin)))
             return BadRequest(new { message = "El PIN ya está en uso." });
 
         var nuevoBarbero = new Usuario
         {
             Nombre = dto.Nombre,
-            Pin = dto.Pin,
+            Pin = PasswordHasher.Hash(dto.Pin),
             Rol = "Barbero"
         };
 
@@ -47,7 +50,7 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin, nuevoBarbero.IsAvailable));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, "****", nuevoBarbero.IsAvailable));
     }
 
     // PUT: api/usuarios/barberos/{id}
@@ -59,11 +62,18 @@ public class UsuariosController : ControllerBase
         if (barbero == null || barbero.Rol != "Barbero")
             return NotFound(new { message = "Barbero no encontrado." });
 
-        if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
-            return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+        // 🛡️ Sentinel: Only update PIN if it's not the placeholder "****"
+        if (dto.Pin != "****")
+        {
+            // Verify uniqueness against other users
+            var users = await _db.Usuarios.Where(u => u.Id != id).ToListAsync();
+            if (users.Any(u => PasswordHasher.Verify(dto.Pin, u.Pin)))
+                return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+
+            barbero.Pin = PasswordHasher.Hash(dto.Pin);
+        }
 
         barbero.Nombre = dto.Nombre;
-        barbero.Pin = dto.Pin;
 
         await _db.SaveChangesAsync();
 

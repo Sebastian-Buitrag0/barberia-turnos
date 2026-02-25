@@ -131,9 +131,9 @@ namespace BarberiaTurnos.Migrations
                 columns: new[] { "Id", "Nombre", "Pin", "Rol" },
                 values: new object[,]
                 {
-                    { 1, "Admin", "0000", "Admin" },
-                    { 2, "Barbero 1", "1111", "Barbero" },
-                    { 3, "Barbero 2", "2222", "Barbero" }
+                    { 1, "Admin", "x9X3VhoQbtpKPoEFTBa9Jg==.ZTD76QHcYwdtqgS3lZMmt8YM2B0wHtcjzOr+QtxMaak=", "Admin" },
+                    { 2, "Barbero 1", "xbi/qzvW133SbCAC2wwrfQ==.NRHoKtUjfWP3659XDRbw2cw1V1LQ/l83L2TInVok6EA=", "Barbero" },
+                    { 3, "Barbero 2", "Ad39b3TAlOI6bVo5b5ljgQ==.d/ADKEn0cw3q201UNPDjLxJr2cIpdqqyAU5DFhneVvU=", "Barbero" }
                 });
 
             migrationBuilder.CreateIndex(
