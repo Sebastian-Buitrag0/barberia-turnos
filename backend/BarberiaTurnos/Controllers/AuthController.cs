@@ -22,7 +22,12 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<object>> Login([FromBody] LoginDto dto)
     {
-        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Pin == dto.Pin);
+        // Fetch all users to verify hash (cannot filter by hash directly due to unique salt)
+        // For a small number of users, this is acceptable.
+        var usuarios = await _db.Usuarios.ToListAsync();
+
+        var usuario = usuarios.FirstOrDefault(u => PasswordHasher.Verify(dto.Pin, u.Pin));
+
         if (usuario == null)
             return Unauthorized(new { message = "PIN incorrecto" });
 
