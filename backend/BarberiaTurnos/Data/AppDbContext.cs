@@ -53,10 +53,14 @@ public class AppDbContext : DbContext
         );
 
         // Seed Usuarios (Admin + 2 Barberos)
+        // PINs are hashed using PBKDF2 (SHA256, 100000 iterations, 16 bytes salt)
+        // "0000" -> Pb8StHPke9OZdLu/QMRAxQ==.iLjwEUoohb3fGjiTkgjFxy/zlmctR1jYaZjsDPK+fL0=
+        // "1111" -> cFlY1/cPziXSQYjBoQeIXQ==.2TGMzTPUVC3n5UhhDuPwTR9gupUmbW41xQdbzIkXcLo=
+        // "2222" -> DJEYx0i7dXu9Wz6eL8kg4g==.TVnZ5CZhIP3Y5VLuBnJnjLemxRnYjOhaZodsYzIkEUQ=
         modelBuilder.Entity<Usuario>().HasData(
-            new Usuario { Id = 1, Nombre = "Admin", Pin = "0000", Rol = "Admin" },
-            new Usuario { Id = 2, Nombre = "Barbero 1", Pin = "1111", Rol = "Barbero" },
-            new Usuario { Id = 3, Nombre = "Barbero 2", Pin = "2222", Rol = "Barbero" }
+            new Usuario { Id = 1, Nombre = "Admin", Pin = "Pb8StHPke9OZdLu/QMRAxQ==.iLjwEUoohb3fGjiTkgjFxy/zlmctR1jYaZjsDPK+fL0=", Rol = "Admin" },
+            new Usuario { Id = 2, Nombre = "Barbero 1", Pin = "cFlY1/cPziXSQYjBoQeIXQ==.2TGMzTPUVC3n5UhhDuPwTR9gupUmbW41xQdbzIkXcLo=", Rol = "Barbero" },
+            new Usuario { Id = 3, Nombre = "Barbero 2", Pin = "DJEYx0i7dXu9Wz6eL8kg4g==.TVnZ5CZhIP3Y5VLuBnJnjLemxRnYjOhaZodsYzIkEUQ=", Rol = "Barbero" }
         );
     }
 }
