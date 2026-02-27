@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
+using BarberiaTurnos.Services;
 
 namespace BarberiaTurnos.Controllers;
 
@@ -11,10 +12,12 @@ namespace BarberiaTurnos.Controllers;
 public class UsuariosController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IPasswordHasher _hasher;
 
-    public UsuariosController(AppDbContext db)
+    public UsuariosController(AppDbContext db, IPasswordHasher hasher)
     {
         _db = db;
+        _hasher = hasher;
     }
 
     // GET: api/usuarios/barberos
@@ -23,7 +26,7 @@ public class UsuariosController : ControllerBase
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin, u.IsAvailable))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, "****", u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);
@@ -33,13 +36,21 @@ public class UsuariosController : ControllerBase
     [HttpPost("barberos")]
     public async Task<ActionResult<UsuarioAdminResponseDto>> CrearBarbero([FromBody] CrearModificarBarberoDto dto)
     {
-        if (await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
-            return BadRequest(new { message = "El PIN ya está en uso." });
+        // No podemos verificar unicidad de PIN facilmente con hash, pero podemos intentar
+        // verificarlo en memoria si es critico, o confiar en que la probabilidad de colision es baja
+        // para diferentes PINs. Sin embargo, si dos usuarios tienen el mismo PIN, tendran diferente hash.
+        // La restriccion de "PIN unico" es dificil de mantener con hashing salteado sin escanear toda la tabla.
+        // Por simplicidad en este MVP, permitiremos "colisiones" de PIN original (diferentes usuarios pueden tener mismo PIN
+        // pero diferente hash), O escaneamos todo. Escanearemos todo por seguridad.
+
+        var usuarios = await _db.Usuarios.ToListAsync();
+        if (usuarios.Any(u => _hasher.VerifyPassword(dto.Pin, u.Pin)))
+             return BadRequest(new { message = "El PIN ya está en uso." });
 
         var nuevoBarbero = new Usuario
         {
             Nombre = dto.Nombre,
-            Pin = dto.Pin,
+            Pin = _hasher.HashPassword(dto.Pin),
             Rol = "Barbero"
         };
 
@@ -47,7 +58,7 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin, nuevoBarbero.IsAvailable));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, "********", nuevoBarbero.IsAvailable));
     }
 
     // PUT: api/usuarios/barberos/{id}
@@ -59,12 +70,18 @@ public class UsuariosController : ControllerBase
         if (barbero == null || barbero.Rol != "Barbero")
             return NotFound(new { message = "Barbero no encontrado." });
 
-        if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
-            return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+        // Si el frontend envía "****", significa que el usuario no modificó el PIN.
+        if (dto.Pin != "****")
+        {
+            // Es un nuevo PIN, verificamos unicidad
+            var usuarios = await _db.Usuarios.Where(u => u.Id != id).ToListAsync();
+            if (usuarios.Any(u => _hasher.VerifyPassword(dto.Pin, u.Pin)))
+                return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+
+            barbero.Pin = _hasher.HashPassword(dto.Pin);
+        }
 
         barbero.Nombre = dto.Nombre;
-        barbero.Pin = dto.Pin;
-
         await _db.SaveChangesAsync();
 
         return NoContent();

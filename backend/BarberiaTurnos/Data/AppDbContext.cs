@@ -54,9 +54,9 @@ public class AppDbContext : DbContext
 
         // Seed Usuarios (Admin + 2 Barberos)
         modelBuilder.Entity<Usuario>().HasData(
-            new Usuario { Id = 1, Nombre = "Admin", Pin = "0000", Rol = "Admin" },
-            new Usuario { Id = 2, Nombre = "Barbero 1", Pin = "1111", Rol = "Barbero" },
-            new Usuario { Id = 3, Nombre = "Barbero 2", Pin = "2222", Rol = "Barbero" }
+            new Usuario { Id = 1, Nombre = "Admin", Pin = "/p09UPopWPFoxMD4dSE1Bw==.ovZz1gBUYfR77CEjdIfAaVpPNeTofnpzSGmVlW4upyo=", Rol = "Admin" },
+            new Usuario { Id = 2, Nombre = "Barbero 1", Pin = "5lh567xfkkl2xYEfR/fOkA==.xVhyAWJWFOLKO1kebfjodq0lKbZYpRFEVmZGZa/L2S0=", Rol = "Barbero" },
+            new Usuario { Id = 3, Nombre = "Barbero 2", Pin = "x7oXPyKRHUikgTAaj9q22A==.HI3Dd0dgahtKj/HaywAbX7u95Lh1lMLEY2tglXgpqG4=", Rol = "Barbero" }
         );
     }
 }

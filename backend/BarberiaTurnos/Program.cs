@@ -18,6 +18,9 @@ builder.Services.AddSignalR();
 // WhatsApp Service
 builder.Services.AddScoped<IWhatsAppService, TwilioWhatsAppService>();
 
+// Password Hasher
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+
 // Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
