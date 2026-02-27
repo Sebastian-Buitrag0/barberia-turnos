@@ -22,7 +22,7 @@ public record TurnoResponseDto(
 public record DetalleDto(string ServicioNombre, decimal PrecioCobrado);
 
 public record UsuarioResponseDto(int Id, string Nombre, string Rol, bool IsAvailable);
-public record UsuarioAdminResponseDto(int Id, string Nombre, string Rol, string Pin, bool IsAvailable);
+public record UsuarioAdminResponseDto(int Id, string Nombre, string Rol, bool IsAvailable);
 
 public record ServicioDto(int Id, string Nombre, decimal Precio);
-public record CrearModificarBarberoDto(string Nombre, string Pin);
+public record CrearModificarBarberoDto(string Nombre, string? Pin);
