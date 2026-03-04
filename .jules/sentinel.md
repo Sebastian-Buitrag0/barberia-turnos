@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing Authorization on Admin Endpoints
+**Vulnerability:** Several administrative endpoints (`UsuariosController.GetBarberosAdmin`, `UsuariosController.CrearBarbero`, `UsuariosController.EditarBarbero`, `UsuariosController.EliminarBarbero`, and `TurnosController.RegistrarAdmin`) lacked proper authorization checks (`[Authorize(Roles = "Admin")]`), allowing any unauthenticated or unauthorized user to access, modify, or delete sensitive data and manipulate the turn queue.
+**Learning:** The project's controllers sometimes expose sensitive operations without explicit role-based access control. Simply assuming an endpoint is for "admins" by its route or name is insufficient.
+**Prevention:** Always verify and enforce proper authorization attributes, specifically `[Authorize(Roles = "Admin")]` for administrative actions, on all new and existing controller endpoints that manipulate users or global state.
