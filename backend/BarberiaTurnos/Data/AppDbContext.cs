@@ -47,16 +47,20 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Servicio>().HasData(
             new Servicio { Id = 1, Nombre = "Corte Clásico", Precio = 15000m, Activo = true },
             new Servicio { Id = 2, Nombre = "Corte Desvanecido", Precio = 17000m, Activo = true },
-            new Servicio { Id = 3, Nombre = "Corte y Barba", Precio = 25000m, Activo = true },
-            new Servicio { Id = 4, Nombre = "Cejas Hombre", Precio = 3000m, Activo = true },
-            new Servicio { Id = 5, Nombre = "Barba", Precio = 8000m, Activo = true }
+            new Servicio { Id = 3, Nombre = "Corte y Barba Marcada", Precio = 23000m, Activo = true },
+            new Servicio { Id = 4, Nombre = "Corte y Barba", Precio = 25000m, Activo = true },
+            new Servicio { Id = 5, Nombre = "Corte y Cejas", Precio = 20000m, Activo = true },
+            new Servicio { Id = 6, Nombre = "Corte y Raya", Precio = 19000m, Activo = true },
+            new Servicio { Id = 7, Nombre = "Corte y Figura", Precio = 22000m, Activo = true },
+            new Servicio { Id = 8, Nombre = "Despunte de Cabello", Precio = 10000m, Activo = true },
+            new Servicio { Id = 9, Nombre = "Barba", Precio = 8000m, Activo = true },
+            new Servicio { Id = 10, Nombre = "Cejas con Cuchilla", Precio = 5000m, Activo = true },
+            new Servicio { Id = 11, Nombre = "Cejas con Cera", Precio = 10000m, Activo = true }
         );
 
-        // Seed Usuarios (Admin + 2 Barberos)
+        // Seed Usuarios (Solo Admin)
         modelBuilder.Entity<Usuario>().HasData(
-            new Usuario { Id = 1, Nombre = "Admin", Pin = "0000", Rol = "Admin" },
-            new Usuario { Id = 2, Nombre = "Barbero 1", Pin = "1111", Rol = "Barbero" },
-            new Usuario { Id = 3, Nombre = "Barbero 2", Pin = "2222", Rol = "Barbero" }
+            new Usuario { Id = 1, Nombre = "Admin", Pin = "0000", Rol = "Admin" }
         );
     }
 }
