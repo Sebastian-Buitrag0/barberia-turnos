@@ -1,0 +1,4 @@
+## 2024-05-24 - [Add Missing Authorization on Admin Endpoints]
+**Vulnerability:** Found multiple administrative endpoints in `UsuariosController` (`GetBarberosAdmin`, `CrearBarbero`, `EditarBarbero`, `EliminarBarbero`) and `TurnosController` (`RegistrarAdmin`) that were missing the `[Authorize(Roles = "Admin")]` attribute, allowing unauthenticated and unauthorized access to sensitive data and operations.
+**Learning:** Controller endpoints that expose or mutate sensitive administrative data require explicit authorization checks. Without them, any user (or unauthenticated actor) can bypass intended access controls.
+**Prevention:** Always ensure that endpoints intended solely for administrative use are decorated with `[Authorize(Roles = "Admin")]` (or an equivalent authorization attribute) to enforce role-based access control.
