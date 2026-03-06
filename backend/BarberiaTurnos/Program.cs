@@ -58,11 +58,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-apply migrations
+// Auto-apply migrations with retry logic
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var maxRetries = 5;
+    for (int i = 0; i < maxRetries; i++)
+    {
+        try
+        {
+            logger.LogInformation($"Attempting to connect to the database and run migrations. Attempt {i + 1}/{maxRetries}");
+            db.Database.Migrate();
+            logger.LogInformation("Database connected and migrations applied successfully.");
+            break; // Success
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, $"Database connection/migration failed on attempt {i + 1}");
+            if (i == maxRetries - 1)
+            {
+                logger.LogError(ex, "Failed to connect to the database after multiple attempts.");
+                throw; // Re-throw on last attempt if we absolutely must fail
+            }
+            Thread.Sleep(TimeSpan.FromSeconds(5)); // Wait before retrying
+        }
+    }
 }
 
 if (app.Environment.IsDevelopment())
