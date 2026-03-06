@@ -57,3 +57,13 @@ export function offQueueUpdated(callback) {
   const conn = getConnection();
   conn.off("QueueUpdated", callback);
 }
+
+export function onBarberosUpdated(callback) {
+  const conn = getConnection();
+  conn.on("BarberosUpdated", callback);
+}
+
+export function offBarberosUpdated(callback) {
+  const conn = getConnection();
+  conn.off("BarberosUpdated", callback);
+}

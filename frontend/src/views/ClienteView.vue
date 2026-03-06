@@ -43,6 +43,24 @@ const countryCodes = [
   { code: "+51", flag: "🇵🇪", name: "Perú" },
 ];
 
+// Cargar lista de barberos
+const cargarBarberos = async () => {
+  try {
+    const list = await api.getBarberos();
+    barberos.value = list;
+
+    // Si el barbero seleccionado ya no está en la lista (se desconectó/ya no está disponible), quitar la selección
+    if (
+      selectedBarberoId.value &&
+      !list.find((b) => b.id === selectedBarberoId.value)
+    ) {
+      selectedBarberoId.value = null;
+    }
+  } catch (e) {
+    console.error("No se pudieron cargar los barberos", e);
+  }
+};
+
 // Cargar estado inicial
 const cargarEstado = async () => {
   const storedPhone = localStorage.getItem("cliente_telefono");
@@ -79,12 +97,7 @@ const cargarEstado = async () => {
   }
 
   // Find available barbers
-  try {
-    const list = await api.getBarberos();
-    barberos.value = list;
-  } catch (e) {
-    console.error("No se pudieron cargar los barberos", e);
-  }
+  await cargarBarberos();
 };
 
 // Registrar Turno
@@ -159,6 +172,10 @@ const handleQueueUpdate = async () => {
   }
 };
 
+const handleBarberosUpdate = async () => {
+  await cargarBarberos();
+};
+
 // Watcher for "Llamado" state to trigger alert
 watch(
   () => miTurno.value?.estado,
@@ -188,10 +205,12 @@ watch(
 onMounted(() => {
   cargarEstado();
   signalRService.onQueueUpdated(handleQueueUpdate);
+  signalRService.onBarberosUpdated(handleBarberosUpdate);
 });
 
 onUnmounted(() => {
   signalRService.offQueueUpdated(handleQueueUpdate);
+  signalRService.offBarberosUpdated(handleBarberosUpdate);
 });
 </script>
 

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
+using BarberiaTurnos.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BarberiaTurnos.Controllers;
 
@@ -11,10 +13,12 @@ namespace BarberiaTurnos.Controllers;
 public class UsuariosController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IHubContext<TurnosHub> _hubContext;
 
-    public UsuariosController(AppDbContext db)
+    public UsuariosController(AppDbContext db, IHubContext<TurnosHub> hubContext)
     {
         _db = db;
+        _hubContext = hubContext;
     }
 
     // GET: api/usuarios/barberos
@@ -105,6 +109,9 @@ public class UsuariosController : ControllerBase
 
         barbero.IsAvailable = !barbero.IsAvailable;
         await _db.SaveChangesAsync();
+
+        // Broadcast to all connected clients that the barber list/availability has changed
+        await _hubContext.Clients.All.SendAsync("BarberosUpdated");
 
         return Ok(new { isAvailable = barbero.IsAvailable });
     }
