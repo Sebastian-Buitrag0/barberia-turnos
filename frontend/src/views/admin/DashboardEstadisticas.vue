@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   Lock,
   UserCheck,
+  X,
+  Check,
 } from "lucide-vue-next";
 import api from "../../services/api";
 import { Line as LineChart, Bar as BarChart } from "vue-chartjs";
@@ -92,23 +94,33 @@ const loadData = async () => {
   }
 };
 
-const cerrarCaja = async () => {
-  if (
-    !confirm(
-      "⚠️ ¿Estás seguro de que quieres cerrar la caja de hoy? Esta acción es irreversible y fijará los ingresos actuales en el historial.",
-    )
-  )
-    return;
+const showConfirmCierre = ref(false);
+const showFeedbackCierre = ref(false);
+const feedbackMensaje = ref("");
+const feedbackTipo = ref("info");
 
+const mostrarFeedback = (mensaje, tipo) => {
+  feedbackMensaje.value = mensaje;
+  feedbackTipo.value = tipo;
+  showFeedbackCierre.value = true;
+};
+
+const confirmarCerrarCaja = () => {
+  showConfirmCierre.value = true;
+};
+
+const executeCerrarCaja = async () => {
+  showConfirmCierre.value = false;
   isClosing.value = true;
   try {
     await api.cerrarCaja();
     await loadData();
-    alert("✅ Caja cerrada exitosamente.");
+    mostrarFeedback("✅ Caja cerrada exitosamente.", "success");
   } catch (error) {
     console.error("Error cerrado caja:", error);
-    alert(
+    mostrarFeedback(
       error.response?.data?.message || "Ocurrió un error al cerrar la caja.",
+      "error",
     );
   } finally {
     isClosing.value = false;
@@ -375,7 +387,7 @@ const historyChartOptions = {
 
           <button
             v-else
-            @click="cerrarCaja"
+            @click="confirmarCerrarCaja"
             :disabled="isClosing"
             class="group w-full relative flex items-center justify-center gap-2 px-6 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-lg shadow-red-900/20 border border-red-500 transition-all font-bold overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -511,6 +523,86 @@ const historyChartOptions = {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+    <!-- Confirmation Modal for Cerrar Caja -->
+    <div
+      v-if="showConfirmCierre"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        class="glass w-full max-w-sm rounded-2xl p-6 border border-slate-700 shadow-2xl animate-in zoom-in-95 text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-slate-800 text-slate-400"
+        >
+          <Lock class="w-8 h-8" />
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">
+          Confirmar Cierre de Caja
+        </h3>
+        <p class="text-slate-400 mb-6 font-medium">
+          ¿Estás seguro de que quieres cerrar la caja de hoy?
+          <span class="block mt-2 text-sm text-slate-500 font-normal">
+            Esta acción es irreversible y fijará los ingresos actuales en el
+            historial.
+          </span>
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            @click="showConfirmCierre = false"
+            class="py-3 rounded-xl font-bold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="executeCerrarCaja"
+            class="py-3 rounded-xl font-bold transition-all bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 border border-red-500"
+          >
+            Cerrar Caja
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div
+      v-if="showFeedbackCierre"
+      class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        class="glass w-full max-w-sm rounded-2xl p-6 border border-slate-700 shadow-2xl animate-in zoom-in-95 duration-200 text-center"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+          :class="
+            feedbackTipo === 'error'
+              ? 'bg-red-500/10 text-red-500'
+              : 'bg-green-500/10 text-green-500'
+          "
+        >
+          <component
+            :is="feedbackTipo === 'error' ? X : Check"
+            class="w-8 h-8"
+          />
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">
+          {{ feedbackTipo === "error" ? "Atención" : "¡Listo!" }}
+        </h3>
+        <p class="text-slate-400 mb-6">{{ feedbackMensaje }}</p>
+
+        <button
+          @click="showFeedbackCierre = false"
+          class="w-full py-3 rounded-xl font-bold transition-all"
+          :class="
+            feedbackTipo === 'error'
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          "
+        >
+          Aceptar
+        </button>
       </div>
     </div>
   </div>

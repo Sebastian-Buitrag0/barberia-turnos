@@ -49,6 +49,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(allowedOrigins)
+              .SetIsOriginAllowed(origin => true) // Allows any origin to work with credentials explicitly
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR/Cookies if used
@@ -74,6 +75,6 @@ app.UseCors();
 app.UseAuthentication(); // Important: Auth before Authorization
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<TurnosHub>("/hubs/turnos").RequireCors("SignalR");
+app.MapHub<TurnosHub>("/hubs/turnos");
 
 app.Run();
