@@ -22,6 +22,7 @@ public class UsuariosController : ControllerBase
     }
 
     // GET: api/usuarios/barberos
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     [HttpGet("barberos")]
     public async Task<ActionResult<List<UsuarioAdminResponseDto>>> GetBarberosAdmin()
     {
@@ -34,6 +35,7 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/usuarios/barberos
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     [HttpPost("barberos")]
     public async Task<ActionResult<UsuarioAdminResponseDto>> CrearBarbero([FromBody] CrearModificarBarberoDto dto)
     {
@@ -55,6 +57,7 @@ public class UsuariosController : ControllerBase
     }
 
     // PUT: api/usuarios/barberos/{id}
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     [HttpPut("barberos/{id}")]
     public async Task<IActionResult> EditarBarbero(int id, [FromBody] CrearModificarBarberoDto dto)
     {
@@ -75,6 +78,7 @@ public class UsuariosController : ControllerBase
     }
 
     // DELETE: api/usuarios/barberos/{id}
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     [HttpDelete("barberos/{id}")]
     public async Task<IActionResult> EliminarBarbero(int id)
     {
