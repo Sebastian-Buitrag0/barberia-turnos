@@ -235,7 +235,8 @@ public class TwilioWhatsAppService : IWhatsAppService
                 return Task.FromResult("❌ Esa fecha ya pasó. Por favor escribe una fecha futura (ej: *15-03-2026*).");
             }
 
-            state.DiaTurnoTemporal = fecha.Date;
+            // Explicitly mark as UTC so PostgreSQL accepts it
+            state.DiaTurnoTemporal = DateTime.SpecifyKind(fecha.Date, DateTimeKind.Utc);
             state.EstadoActual = "EsperandoNombre";
             return Task.FromResult($"✅ Perfecto, agendamos para el *{fecha:dd-MM-yyyy}*.\n¿Cuál es tu nombre?");
         }
@@ -251,7 +252,10 @@ public class TwilioWhatsAppService : IWhatsAppService
         }
 
         var nombre = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(input);
-        var diaTurno = state.DiaTurnoTemporal ?? DateTime.UtcNow.Date;
+        // HandleNombre uses DiaTurnoTemporal or today — both must be UTC
+        var diaTurno = state.DiaTurnoTemporal.HasValue
+            ? DateTime.SpecifyKind(state.DiaTurnoTemporal.Value, DateTimeKind.Utc)
+            : DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
 
         // Find or create client — never overwrite existing name
         var cliente = await db.Clientes.FirstOrDefaultAsync(c => c.Telefono == state.Telefono);
