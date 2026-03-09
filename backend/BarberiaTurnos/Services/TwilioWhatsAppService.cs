@@ -57,6 +57,16 @@ public class TwilioWhatsAppService : IWhatsAppService
 
         var input = body.Trim().ToLower();
 
+        // ── Global reset commands ─────────────────────────────────────────────
+        if (input is "hola" or "inicio" or "reiniciar" or "menu" or "menú" or "start")
+        {
+            var stateReset = await db.WhatsAppStates.FirstOrDefaultAsync(w => w.Telefono == telefono);
+            if (stateReset != null) { stateReset.EstadoActual = "Inicio"; stateReset.NombreTemporal = null; stateReset.BarberoIdTemporal = null; stateReset.DiaTurnoTemporal = null; }
+            await db.SaveChangesAsync();
+            var freshState = stateReset ?? new WhatsAppState { Telefono = telefono };
+            return await HandleInicio(freshState, input, db);
+        }
+
         // ── Global command: "cancelar" at any point in the conversation ──────
         if (input.Contains("cancelar") || input.Contains("cancela"))
         {
@@ -118,7 +128,7 @@ public class TwilioWhatsAppService : IWhatsAppService
         return Task.FromResult(
             "✂️ ¡Hola! Bienvenido a *Barbería*. ¿Necesitas un turno para tu corte?\n\n" +
             "Responde:\n*1* - Sí, quiero un turno\n*2* - No, gracias\n\n" +
-            "_En cualquier momento escribe *cancelar* para anular tu turno activo._");
+            "_En cualquier momento escribe *cancelar* para anular tu turno activo, o *hola* para reiniciar._");
     }
 
     private async Task<string> HandleRespuestaCorte(WhatsAppState state, string input, AppDbContext db)
@@ -200,8 +210,8 @@ public class TwilioWhatsAppService : IWhatsAppService
 
     private Task<string> HandleFechaEspecifica(WhatsAppState state, string input, AppDbContext db)
     {
-        // Accept d/M/yyyy, dd/MM/yyyy, d-M-yyyy, dd-MM-yyyy variants
-        var normalized = input.Replace("-", "/");
+        // Replace any separator (slash, dash, dot, space) and try all short/long day-month combos
+        var normalized = System.Text.RegularExpressions.Regex.Replace(input.Trim(), @"[\s/\-\.]+", "/");
         string[] formats = { "d/M/yyyy", "dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy" };
 
         if (DateTime.TryParseExact(normalized, formats,
@@ -211,15 +221,15 @@ public class TwilioWhatsAppService : IWhatsAppService
         {
             if (fecha.Date < DateTime.UtcNow.Date)
             {
-                return Task.FromResult("❌ Esa fecha ya pasó. Por favor escribe una fecha futura (formato *dd/mm/aaaa*).");
+                return Task.FromResult("❌ Esa fecha ya pasó. Por favor escribe una fecha futura (ej: *15-03-2026*).");
             }
 
             state.DiaTurnoTemporal = fecha.Date;
             state.EstadoActual = "EsperandoNombre";
-            return Task.FromResult($"✅ Perfecto, agendamos para el *{fecha:dd/MM/yyyy}*.\n¿Cuál es tu nombre?");
+            return Task.FromResult($"✅ Perfecto, agendamos para el *{fecha:dd-MM-yyyy}*.\n¿Cuál es tu nombre?");
         }
 
-        return Task.FromResult("No entendí la fecha 😅 Escríbela así: *09/03/2026* (día/mes/año)");
+        return Task.FromResult("No entendí la fecha 😅 Escríbela así: *15-03-2026* (día-mes-año)");
     }
 
     private async Task<string> HandleNombre(WhatsAppState state, string input, AppDbContext db)
