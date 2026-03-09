@@ -14,15 +14,18 @@ public class TwilioWhatsAppService : IWhatsAppService
     private readonly IConfiguration _config;
     private readonly ILogger<TwilioWhatsAppService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IHubContext<TurnosHub> _hub;
 
     public TwilioWhatsAppService(
         IConfiguration config,
         ILogger<TwilioWhatsAppService> logger,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IHubContext<TurnosHub> hub)
     {
         _config = config;
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _hub = hub;
     }
 
     // ─── Outbound Notifications ─────────────────────────────────────────────
@@ -53,6 +56,12 @@ public class TwilioWhatsAppService : IWhatsAppService
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var input = body.Trim().ToLower();
+
+        // ── Global command: "cancelar" at any point in the conversation ──────
+        if (input.Contains("cancelar") || input.Contains("cancela"))
+        {
+            return await HandleCancelar(telefono, db);
+        }
 
         // Get or create conversation state for this phone number
         var state = await db.WhatsAppStates.FirstOrDefaultAsync(w => w.Telefono == telefono);
@@ -108,7 +117,8 @@ public class TwilioWhatsAppService : IWhatsAppService
 
         return Task.FromResult(
             "✂️ ¡Hola! Bienvenido a *Barbería*. ¿Necesitas un turno para tu corte?\n\n" +
-            "Responde:\n*1* - Sí, quiero un turno\n*2* - No, gracias");
+            "Responde:\n*1* - Sí, quiero un turno\n*2* - No, gracias\n\n" +
+            "_En cualquier momento escribe *cancelar* para anular tu turno activo._");
     }
 
     private async Task<string> HandleRespuestaCorte(WhatsAppState state, string input, AppDbContext db)
@@ -134,7 +144,7 @@ public class TwilioWhatsAppService : IWhatsAppService
 
         if (barberos.Count == 0)
         {
-            // No barbers available, assign to any
+            // No barbers available, skip barber selection
             state.BarberoIdTemporal = null;
             state.EstadoActual = "EsperandoDia";
             return "Actualmente no hay barberos disponibles en este momento, pero podemos agendarte el turno. ¿Para qué día lo necesitas?\n\n*1* - Hoy\n*2* - Otro día";
@@ -169,28 +179,27 @@ public class TwilioWhatsAppService : IWhatsAppService
         return "¿Para qué día necesitas el turno?\n\n*1* - Hoy\n*2* - Otro día";
     }
 
-    private async Task<string> HandleDia(WhatsAppState state, string input, AppDbContext db)
+    private Task<string> HandleDia(WhatsAppState state, string input, AppDbContext db)
     {
         if (input == "1" || input.Contains("hoy"))
         {
             state.DiaTurnoTemporal = DateTime.UtcNow.Date;
             state.EstadoActual = "EsperandoNombre";
-            return "¡Perfecto! Por último, ¿cuál es tu nombre? (Para que el barbero te llame)";
+            return Task.FromResult("¡Perfecto! Por último, ¿cuál es tu nombre? (Para que el barbero te llame)");
         }
         else if (input == "2" || input.Contains("otro") || input.Contains("especif"))
         {
             state.EstadoActual = "EsperandoFechaEspecifica";
-            return "¿Para qué fecha? Escríbela en formato *dd/mm/aaaa* (Ej: *15/03/2026*)";
+            return Task.FromResult("¿Para qué fecha? Escríbela en formato *dd/mm/aaaa* (Ej: *15/03/2026*)");
         }
         else
         {
-            return "Por favor responde *1* (Hoy) o *2* (Otro día).";
+            return Task.FromResult("Por favor responde *1* (Hoy) o *2* (Otro día).");
         }
     }
 
     private Task<string> HandleFechaEspecifica(WhatsAppState state, string input, AppDbContext db)
     {
-        // Accepts dd/mm/yyyy or dd-mm-yyyy
         var normalized = input.Replace("-", "/");
         if (DateTime.TryParseExact(normalized, "dd/MM/yyyy",
             System.Globalization.CultureInfo.InvariantCulture,
@@ -243,7 +252,7 @@ public class TwilioWhatsAppService : IWhatsAppService
         if (turnoExistente != null)
         {
             state.EstadoActual = "Inicio";
-            return $"⚠️ {nombre}, ya tienes un turno agendado para ese día (Turno #{turnoExistente.TurnoDiario}). ¡Te avisaremos cuando sea tu momento!";
+            return $"⚠️ {nombre}, ya tienes un turno agendado para ese día (Turno #{turnoExistente.TurnoDiario}). ¡Te avisaremos cuando sea tu momento!\n\n_Escribe *cancelar* si quieres anularlo._";
         }
 
         // Assign daily turn number
@@ -264,7 +273,10 @@ public class TwilioWhatsAppService : IWhatsAppService
         db.Turnos.Add(turno);
         await db.SaveChangesAsync();
 
-        // If barber is selected, get the name
+        // 🔴 Notify all connected dashboard clients via SignalR
+        await _hub.Clients.All.SendAsync("QueueUpdated");
+
+        // Get barber name if selected
         string barberoTexto = "cualquier barbero";
         if (state.BarberoIdTemporal.HasValue)
         {
@@ -272,7 +284,7 @@ public class TwilioWhatsAppService : IWhatsAppService
             if (barbero != null) barberoTexto = barbero.Nombre;
         }
 
-        // Reset state for this customer
+        // Reset state
         state.EstadoActual = "Inicio";
         state.NombreTemporal = null;
         state.BarberoIdTemporal = null;
@@ -282,7 +294,35 @@ public class TwilioWhatsAppService : IWhatsAppService
                $"🔢 Turno: *#{turno.TurnoDiario}*\n" +
                $"📅 Día: *{diaTurno:dd/MM/yyyy}*\n" +
                $"💈 Barbero: *{barberoTexto}*\n\n" +
-               $"Te avisaremos por aquí cuando se acerque tu turno. ¡Hasta pronto! 🙌";
+               $"Te avisaremos por aquí cuando se acerque tu turno. ¡Hasta pronto! 🙌\n\n" +
+               $"_Si necesitas cancelar escribe *cancelar*._";
+    }
+
+    // ─── Cancelar turno activo ────────────────────────────────────────────────
+    private async Task<string> HandleCancelar(string telefono, AppDbContext db)
+    {
+        var hoy = DateTime.UtcNow.Date;
+
+        var turno = await db.Turnos
+            .Include(t => t.Cliente)
+            .FirstOrDefaultAsync(t =>
+                t.Cliente.Telefono == telefono &&
+                t.DiaTurno == hoy &&
+                (t.Estado == "EnCola" || t.Estado == "Llamado"));
+
+        if (turno == null)
+        {
+            return "ℹ️ No encontré un turno activo para cancelar hoy.";
+        }
+
+        var numeroCancelado = turno.TurnoDiario;
+        db.Turnos.Remove(turno);
+        await db.SaveChangesAsync();
+
+        // 🔴 Notify all connected dashboard clients via SignalR
+        await _hub.Clients.All.SendAsync("QueueUpdated");
+
+        return $"✅ Tu turno *#{numeroCancelado}* ha sido cancelado. Si deseas un nuevo turno, escríbeme cuando quieras. 👋";
     }
 
     // ─── Core Send Logic ─────────────────────────────────────────────────────
