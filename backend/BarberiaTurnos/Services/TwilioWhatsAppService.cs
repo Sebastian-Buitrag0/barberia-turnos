@@ -257,15 +257,17 @@ public class TwilioWhatsAppService : IWhatsAppService
             ? DateTime.SpecifyKind(state.DiaTurnoTemporal.Value, DateTimeKind.Utc)
             : DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
 
-        // Find or create client — never overwrite existing name
-        var cliente = await db.Clientes.FirstOrDefaultAsync(c => c.Telefono == state.Telefono);
+        // Find client by both phone AND name. This allows multiple people (e.g. parent/child) to use the same WhatsApp number.
+        // We do not overwrite names on existing clients, we just create a separate client record if the name is new.
+        var cliente = await db.Clientes
+            .FirstOrDefaultAsync(c => c.Telefono == state.Telefono && c.Nombre.ToLower() == nombre.ToLower());
+            
         if (cliente == null)
         {
             cliente = new Cliente { Nombre = nombre, Telefono = state.Telefono };
             db.Clientes.Add(cliente);
             await db.SaveChangesAsync();
         }
-        // If the client already exists we keep their stored name
 
         // Check for existing active turn on that day
         var turnoExistente = await db.Turnos
