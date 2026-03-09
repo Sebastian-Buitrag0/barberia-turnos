@@ -61,10 +61,21 @@ public class TwilioWhatsAppService : IWhatsAppService
         if (input is "hola" or "inicio" or "reiniciar" or "menu" or "menú" or "start")
         {
             var stateReset = await db.WhatsAppStates.FirstOrDefaultAsync(w => w.Telefono == telefono);
-            if (stateReset != null) { stateReset.EstadoActual = "Inicio"; stateReset.NombreTemporal = null; stateReset.BarberoIdTemporal = null; stateReset.DiaTurnoTemporal = null; }
+            if (stateReset == null)
+            {
+                stateReset = new WhatsAppState { Telefono = telefono };
+                db.WhatsAppStates.Add(stateReset);
+            }
+            else
+            {
+                stateReset.NombreTemporal = null;
+                stateReset.BarberoIdTemporal = null;
+                stateReset.DiaTurnoTemporal = null;
+            }
+            // Call HandleInicio first (it sets EstadoActual = "EsperandoRespuestaCorte"), THEN save
+            var resetReply = await HandleInicio(stateReset, input, db);
             await db.SaveChangesAsync();
-            var freshState = stateReset ?? new WhatsAppState { Telefono = telefono };
-            return await HandleInicio(freshState, input, db);
+            return resetReply;
         }
 
         // ── Global command: "cancelar" at any point in the conversation ──────
