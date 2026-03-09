@@ -200,8 +200,11 @@ public class TwilioWhatsAppService : IWhatsAppService
 
     private Task<string> HandleFechaEspecifica(WhatsAppState state, string input, AppDbContext db)
     {
+        // Accept d/M/yyyy, dd/MM/yyyy, d-M-yyyy, dd-MM-yyyy variants
         var normalized = input.Replace("-", "/");
-        if (DateTime.TryParseExact(normalized, "dd/MM/yyyy",
+        string[] formats = { "d/M/yyyy", "dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy" };
+
+        if (DateTime.TryParseExact(normalized, formats,
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
             out DateTime fecha))
@@ -213,10 +216,10 @@ public class TwilioWhatsAppService : IWhatsAppService
 
             state.DiaTurnoTemporal = fecha.Date;
             state.EstadoActual = "EsperandoNombre";
-            return Task.FromResult($"✅ Turno agendado para el *{fecha:dd/MM/yyyy}*.\n¿Cuál es tu nombre?");
+            return Task.FromResult($"✅ Perfecto, agendamos para el *{fecha:dd/MM/yyyy}*.\n¿Cuál es tu nombre?");
         }
 
-        return Task.FromResult("Formato no reconocido. Por favor escribe la fecha así: *dd/mm/aaaa* (Ej: *15/03/2026*)");
+        return Task.FromResult("No entendí la fecha 😅 Escríbela así: *09/03/2026* (día/mes/año)");
     }
 
     private async Task<string> HandleNombre(WhatsAppState state, string input, AppDbContext db)
