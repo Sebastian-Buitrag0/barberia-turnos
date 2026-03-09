@@ -10,6 +10,7 @@ public class Turno
     public int? BarberoId { get; set; }
     public Usuario? Barbero { get; set; }
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+    public DateTime DiaTurno { get; set; } = DateTime.UtcNow.Date; // Day the appointment is scheduled for
     public DateTime? FechaInicioAtencion { get; set; } // When Barber sets "En Silla"
     public int NivelAviso { get; set; } = 0; // 0=None, 1=Almost, 2=Next
     public decimal? Total { get; set; }

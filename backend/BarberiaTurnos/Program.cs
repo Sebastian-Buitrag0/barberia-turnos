@@ -15,8 +15,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // SignalR
 builder.Services.AddSignalR();
 
-// WhatsApp Service
-builder.Services.AddScoped<IWhatsAppService, TwilioWhatsAppService>();
+// WhatsApp Service (Singleton because it manages its own DB scopes via IServiceScopeFactory)
+builder.Services.AddSingleton<IWhatsAppService, TwilioWhatsAppService>();
 
 // Controllers + Swagger
 builder.Services.AddControllers();

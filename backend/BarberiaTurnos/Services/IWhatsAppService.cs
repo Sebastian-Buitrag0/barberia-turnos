@@ -6,4 +6,5 @@ public interface IWhatsAppService
     Task SendFirstInLineNotification(string telefono, int turnoDiario);
     Task SendNextInLineNotification(string telefono, int turnoDiario);
     Task SendApproachingNotification(string telefono, int turnoDiario);
+    Task<string> ProcessIncomingMessageAsync(string telefono, string body);
 }

@@ -12,10 +12,14 @@ public class AppDbContext : DbContext
     public DbSet<Servicio> Servicios => Set<Servicio>();
     public DbSet<Turno> Turnos => Set<Turno>();
     public DbSet<TurnoDetalle> TurnoDetalles => Set<TurnoDetalle>();
+    public DbSet<WhatsAppState> WhatsAppStates => Set<WhatsAppState>();
     public DbSet<CierreCaja> CierresCaja => Set<CierreCaja>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Primary key for WhatsAppState
+        modelBuilder.Entity<WhatsAppState>()
+            .HasKey(w => w.Telefono);
         // Unique index on Cliente.Telefono
         modelBuilder.Entity<Cliente>()
             .HasIndex(c => c.Telefono)
