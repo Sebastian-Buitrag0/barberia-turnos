@@ -229,7 +229,7 @@ public class TwilioWhatsAppService : IWhatsAppService
         var nombre = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(input);
         var diaTurno = state.DiaTurnoTemporal ?? DateTime.UtcNow.Date;
 
-        // Find or create client
+        // Find or create client — never overwrite existing name
         var cliente = await db.Clientes.FirstOrDefaultAsync(c => c.Telefono == state.Telefono);
         if (cliente == null)
         {
@@ -237,10 +237,7 @@ public class TwilioWhatsAppService : IWhatsAppService
             db.Clientes.Add(cliente);
             await db.SaveChangesAsync();
         }
-        else
-        {
-            cliente.Nombre = nombre;
-        }
+        // If the client already exists we keep their stored name
 
         // Check for existing active turn on that day
         var turnoExistente = await db.Turnos
