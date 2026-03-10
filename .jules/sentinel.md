@@ -1,0 +1,4 @@
+## 2024-03-01 - Missing Authorization on Admin Endpoints
+**Vulnerability:** Several administrative endpoints for managing barbers and the turn queue (`UsuariosController` and `TurnosController`) lacked proper authorization checks. They were accessible without a token, allowing any user to create/delete barbers or register clients as an admin.
+**Learning:** Controller-level or endpoint-level `[Authorize]` attributes must be explicitly applied. Some endpoints had them, but standard administrative ones lacked them, exposing a critical Insecure Direct Object Reference / Missing Authorization vulnerability.
+**Prevention:** Always verify that every controller action that modifies administrative state or accesses sensitive data has an appropriate `[Authorize(Roles = "Admin")]` or similar attribute. Use integration tests to verify unauthorized access is denied with a 401 or 403 status code.
