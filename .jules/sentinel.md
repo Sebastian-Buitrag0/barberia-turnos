@@ -1,0 +1,4 @@
+## 2024-05-24 - [Missing Authorization on Administrative Endpoints]
+**Vulnerability:** Found `UsuariosController` administrative endpoints (`/api/usuarios/barberos` GET, POST, PUT, DELETE) were lacking any authentication or authorization (`[Authorize]` attribute). The GET endpoint returned `UsuarioAdminResponseDto` which includes the plaintext `Pin` property.
+**Learning:** Returning DTOs with sensitive information like PINs/passwords from unprotected endpoints allows complete compromise of those user accounts. Administrative controllers often require authorization on almost all endpoints.
+**Prevention:** Always apply explicit `[Authorize]` attributes to controllers or endpoints handling sensitive data or performing administrative actions. Review all DTOs returned by endpoints to ensure they do not leak sensitive credentials.
