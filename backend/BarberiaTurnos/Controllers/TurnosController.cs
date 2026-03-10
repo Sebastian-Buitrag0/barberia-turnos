@@ -92,6 +92,7 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/porpagar
+    [Authorize(Roles = "Admin")]
     [HttpGet("porpagar")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetPorPagar()
     {
@@ -204,6 +205,7 @@ public class TurnosController : ControllerBase
 
 
     // POST /api/turnos/registrar-admin (admin agrega a la fila manualmente)
+    [Authorize(Roles = "Admin")]
     [HttpPost("registrar-admin")]
     public async Task<ActionResult<TurnoResponseDto>> RegistrarAdmin([FromBody] RegistrarTurnoDto dto)
     {
