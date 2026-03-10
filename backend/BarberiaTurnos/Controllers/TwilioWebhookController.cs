@@ -50,18 +50,33 @@ public class TwilioWebhookController : ControllerBase
         // Normalize the phone number — strip the "whatsapp:" prefix
         var telefono = from.Replace("whatsapp:", "").Trim();
 
-        // Process the message through the state machine and get the reply
-        var reply = await _whatsApp.ProcessIncomingMessageAsync(telefono, body);
+        try
+        {
+            // Process the message through the state machine and get the reply
+            var reply = await _whatsApp.ProcessIncomingMessageAsync(telefono, body);
 
-        // Respond to Twilio using TwiML so Twilio sends the reply back immediately
-        var twiml = $"""
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Response>
-              <Message>{System.Net.WebUtility.HtmlEncode(reply)}</Message>
-            </Response>
-            """;
+            // Respond to Twilio using TwiML so Twilio sends the reply back immediately
+            var twiml = $"""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Response>
+                  <Message>{System.Net.WebUtility.HtmlEncode(reply)}</Message>
+                </Response>
+                """;
 
-        return Content(twiml, "application/xml");
+            return Content(twiml, "application/xml");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error crítico procesando mensaje de WhatsApp de {From}", from);
+            
+            var errorTwiml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Response>
+                  <Message>⚠️ Lo sentimos, ocurrió un error procesando tu mensaje. Por favor intenta de nuevo más tarde o escribe *hola* para reiniciar.</Message>
+                </Response>
+                """;
+            return Content(errorTwiml, "application/xml");
+        }
     }
 
     private bool ValidateTwilioRequest()
