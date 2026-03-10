@@ -116,6 +116,9 @@ public class TwilioWhatsAppService : IWhatsAppService
             case "EsperandoNombre":
                 respuesta = await HandleNombre(state, input, db);
                 break;
+            case "EsperandoCancelacion":
+                respuesta = await HandleCancelacion(state, input, db);
+                break;
             default:
                 state.EstadoActual = "Inicio";
                 respuesta = await HandleInicio(state, input, db);
@@ -330,26 +333,122 @@ public class TwilioWhatsAppService : IWhatsAppService
     {
         var hoy = DateTime.UtcNow.Date;
 
-        var turno = await db.Turnos
-            .Include(t => t.Cliente)
-            .FirstOrDefaultAsync(t =>
-                t.Cliente.Telefono == telefono &&
-                t.DiaTurno == hoy &&
-                (t.Estado == "EnCola" || t.Estado == "Llamado"));
-
-        if (turno == null)
+        var state = await db.WhatsAppStates.FirstOrDefaultAsync(w => w.Telefono == telefono);
+        if (state == null)
         {
-            return "ℹ️ No encontré un turno activo para cancelar hoy.";
+            state = new WhatsAppState { Telefono = telefono, EstadoActual = "Inicio" };
+            db.WhatsAppStates.Add(state);
         }
 
-        var numeroCancelado = turno.TurnoDiario;
-        db.Turnos.Remove(turno);
+        var turnos = await db.Turnos
+            .Include(t => t.Cliente)
+            .Where(t =>
+                t.Cliente.Telefono == telefono &&
+                t.DiaTurno == hoy &&
+                (t.Estado == "EnCola" || t.Estado == "Llamado"))
+            .OrderBy(t => t.TurnoDiario)
+            .ToListAsync();
+
+        if (turnos.Count == 0)
+        {
+            state.EstadoActual = "Inicio";
+            state.CancelacionPendienteIds = null;
+            await db.SaveChangesAsync();
+            return "ℹ️ No encontré ningún turno activo para cancelar hoy.";
+        }
+
+        if (turnos.Count == 1)
+        {
+            var turno = turnos.First();
+            var numeroCancelado = turno.TurnoDiario;
+            db.Turnos.Remove(turno);
+            
+            state.EstadoActual = "Inicio";
+            state.CancelacionPendienteIds = null;
+            await db.SaveChangesAsync();
+
+            // 🔴 Notify all connected dashboard clients via SignalR
+            await _hub.Clients.All.SendAsync("QueueUpdated");
+
+            return $"✅ Tu turno *#{numeroCancelado}* para {turno.Cliente.Nombre} ha sido cancelado. Si deseas un nuevo turno, escríbeme cuando quieras. 👋";
+        }
+
+        // Multiple turns exist
+        state.EstadoActual = "EsperandoCancelacion";
+        state.CancelacionPendienteIds = string.Join(",", turnos.Select(t => t.Id));
         await db.SaveChangesAsync();
 
-        // 🔴 Notify all connected dashboard clients via SignalR
-        await _hub.Clients.All.SendAsync("QueueUpdated");
+        var opciones = string.Join("\n", turnos.Select((t, i) => $"*{i + 1}* - Turno #{t.TurnoDiario} ({t.Cliente.Nombre})"));
+        return $"Veo que tienes *{turnos.Count}* turnos activos hoy.\n¿Cuál deseas cancelar?\n\n{opciones}\n*{turnos.Count + 1}* - Todos\n*0* - Volver sin cancelar";
+    }
 
-        return $"✅ Tu turno *#{numeroCancelado}* ha sido cancelado. Si deseas un nuevo turno, escríbeme cuando quieras. 👋";
+    private async Task<string> HandleCancelacion(WhatsAppState state, string input, AppDbContext db)
+    {
+        if (string.IsNullOrEmpty(state.CancelacionPendienteIds))
+        {
+            state.EstadoActual = "Inicio";
+            return await HandleInicio(state, input, db);
+        }
+
+        if (input == "0" || input == "volver")
+        {
+            state.EstadoActual = "Inicio";
+            state.CancelacionPendienteIds = null;
+            return "Cancelación abortada. ¡Tus turnos siguen activos! Puedes escribir *hola* para volver al inicio.";
+        }
+
+        var turnosIds = state.CancelacionPendienteIds.Split(',')
+            .Select(id => int.Parse(id))
+            .ToList();
+
+        var turnos = await db.Turnos
+            .Include(t => t.Cliente)
+            .Where(t => turnosIds.Contains(t.Id))
+            .ToListAsync();
+
+        if (turnos.Count == 0)
+        {
+            state.EstadoActual = "Inicio";
+            state.CancelacionPendienteIds = null;
+            return "ℹ️ Parece que los turnos ya no están activos. Escribe *hola* para empezar de nuevo.";
+        }
+
+        int maxOpcion = turnos.Count + 1; // Last option is "Todos"
+        
+        if (int.TryParse(input, out int seleccion) && seleccion >= 1 && seleccion <= maxOpcion)
+        {
+            if (seleccion == maxOpcion)
+            {
+                // Delete all
+                db.Turnos.RemoveRange(turnos);
+                
+                state.EstadoActual = "Inicio";
+                state.CancelacionPendienteIds = null;
+
+                // Notify SignalR
+                await _hub.Clients.All.SendAsync("QueueUpdated");
+
+                return $"✅ Todos tus turnos pendientes han sido cancelados. ¡Hasta pronto! 👋";
+            }
+            else
+            {
+                // Delete specific
+                var turnoACancelar = turnos[seleccion - 1];
+                var numCancelado = turnoACancelar.TurnoDiario;
+                var nomCancelado = turnoACancelar.Cliente.Nombre;
+                db.Turnos.Remove(turnoACancelar);
+                
+                state.EstadoActual = "Inicio";
+                state.CancelacionPendienteIds = null;
+
+                // Notify SignalR
+                await _hub.Clients.All.SendAsync("QueueUpdated");
+
+                return $"✅ El turno *#{numCancelado}* para {nomCancelado} ha sido cancelado. ¡Gracias por avisar! 👋";
+            }
+        }
+
+        return $"Por favor responde con un número del *1* al *{maxOpcion}*, o *0* para volver.";
     }
 
     // ─── Core Send Logic ─────────────────────────────────────────────────────

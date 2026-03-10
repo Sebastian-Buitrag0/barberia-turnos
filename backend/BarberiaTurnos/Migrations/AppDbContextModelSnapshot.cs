@@ -295,6 +295,9 @@ namespace BarberiaTurnos.Migrations
                     b.Property<int?>("BarberoIdTemporal")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CancelacionPendienteIds")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DiaTurnoTemporal")
                         .HasColumnType("timestamp with time zone");
 

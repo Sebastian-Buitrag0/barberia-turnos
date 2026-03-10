@@ -8,5 +8,9 @@ public class WhatsAppState
     public string? NombreTemporal { get; set; }
     public int? BarberoIdTemporal { get; set; }
     public DateTime? DiaTurnoTemporal { get; set; }
+    
+    // Almacena los IDs de los turnos que el usuario puede cancelar, separados por coma (ej: "12,15")
+    public string? CancelacionPendienteIds { get; set; }
+    
     public DateTime UltimaInteraccion { get; set; } = DateTime.UtcNow;
 }
