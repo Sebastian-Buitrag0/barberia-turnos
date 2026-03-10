@@ -20,9 +20,10 @@ public class AppDbContext : DbContext
         // Primary key for WhatsAppState
         modelBuilder.Entity<WhatsAppState>()
             .HasKey(w => w.Telefono);
-        // Unique index on Cliente.Telefono
+        // Unique index on Cliente (Telefono, Nombre)
+        // Allows multiple people to use same phone (e.g. parent/child)
         modelBuilder.Entity<Cliente>()
-            .HasIndex(c => c.Telefono)
+            .HasIndex(c => new { c.Telefono, c.Nombre })
             .IsUnique();
 
         // Turno relationships
