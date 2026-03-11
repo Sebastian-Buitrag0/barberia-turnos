@@ -1,0 +1,4 @@
+## 2026-03-11 - [Missing Authorization on Administrative Controllers]
+**Vulnerability:** Several sensitive administrative endpoints related to managing Barbers, their Pins, and bypassing normal validation rules (e.g., `CrearBarbero`, `EditarBarbero`, `RegistrarAdmin`) did not have `[Authorize(Roles = "Admin")]` annotations.
+**Learning:** In a codebase using role-based access control, controllers handling administrative resources need explicit authorization attributes applied per-endpoint (or at the class level if appropriate) to prevent privilege escalation. Otherwise, anyone could add a barber with an arbitrary PIN or add clients to the queue manually as an admin. The plaintext storage of pins in the responses exacerbates this.
+**Prevention:** Apply `[Authorize(Roles = "...")]` attributes specifically to any endpoints interacting with sensitive functionality, strictly enforce role verification on creation, and audit all new administrative endpoints manually.

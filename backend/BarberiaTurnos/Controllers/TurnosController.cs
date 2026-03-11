@@ -204,6 +204,7 @@ public class TurnosController : ControllerBase
 
 
     // POST /api/turnos/registrar-admin (admin agrega a la fila manualmente)
+    [Authorize(Roles = "Admin")]
     [HttpPost("registrar-admin")]
     public async Task<ActionResult<TurnoResponseDto>> RegistrarAdmin([FromBody] RegistrarTurnoDto dto)
     {
