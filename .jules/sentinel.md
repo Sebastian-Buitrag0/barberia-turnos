@@ -1,4 +1,4 @@
-## 2024-05-28 - Missing Authorization on Admin Endpoints
-**Vulnerability:** Several administrative endpoints (e.g., managing barbers in `UsuariosController`, manually registering turns in `TurnosController`) lacked `[Authorize(Roles = "Admin")]` attributes, allowing unauthenticated or under-privileged users to perform administrative actions.
-**Learning:** In ASP.NET Core, controllers without class-level `[Authorize]` attributes leave their endpoints public by default. Developers must explicitly secure every sensitive endpoint to prevent Broken Access Control.
-**Prevention:** Implement a secure-by-default approach by applying `[Authorize]` at the controller level or enforce authorization checks globally, then selectively use `[AllowAnonymous]` for public endpoints.
+## 2024-05-20 - Missing Authorization on Sensitive Data Endpoints
+**Vulnerability:** The endpoints `GetTurnosHoy`, `GetCola`, and `GetPorPagar` in `TurnosController.cs` were returning sensitive Personally Identifiable Information (PII) including client phone numbers, without requiring any authentication.
+**Learning:** Read-only API endpoints (GET requests) returning Data Transfer Objects (DTOs) with Personally Identifiable Information (PII) must be explicitly protected with `[Authorize]` attributes to prevent unauthorized data exposure.
+**Prevention:** Always verify that endpoints returning PII, regardless of HTTP method, have appropriate authorization mechanisms applied. Implement default-deny authorization where possible or require security reviews for any public endpoints returning user data.
