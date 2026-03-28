@@ -38,6 +38,8 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/hoy
+    // 🛡️ Sentinel: Enforce Admin authorization to prevent unauthorized access to all daily turns and PII.
+    [Authorize(Roles = "Admin")]
     [HttpGet("hoy")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetTurnosHoy()
     {
@@ -65,6 +67,8 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/cola
+    // 🛡️ Sentinel: Enforce basic authorization to prevent unauthenticated access to the queue and PII.
+    [Authorize]
     [HttpGet("cola")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetCola()
     {
@@ -92,6 +96,8 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/porpagar
+    // 🛡️ Sentinel: Enforce Admin authorization as this endpoint exposes financial states and PII.
+    [Authorize(Roles = "Admin")]
     [HttpGet("porpagar")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetPorPagar()
     {
