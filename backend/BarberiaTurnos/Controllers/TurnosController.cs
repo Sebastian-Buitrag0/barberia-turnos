@@ -38,6 +38,7 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/hoy
+    [Authorize(Roles = "Admin")]
     [HttpGet("hoy")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetTurnosHoy()
     {
@@ -65,6 +66,7 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/cola
+    [Authorize]
     [HttpGet("cola")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetCola()
     {
@@ -92,6 +94,7 @@ public class TurnosController : ControllerBase
     }
 
     // GET /api/turnos/porpagar
+    [Authorize]
     [HttpGet("porpagar")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetPorPagar()
     {
