@@ -297,6 +297,14 @@ public class TurnosController : ControllerBase
         var turno = await _db.Turnos.FindAsync(dto.TurnoId);
         if (turno == null) return NotFound();
 
+        // Security Fix: Prevent IDOR by verifying resource ownership
+        var isBarbero = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out int currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        if (!isAdmin && (!isBarbero || turno.BarberoId != currentUserId))
+        {
+            return Forbid();
+        }
+
         turno.Estado = "EnSilla";
         turno.FechaInicioAtencion = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -315,6 +323,14 @@ public class TurnosController : ControllerBase
     {
         var turno = await _db.Turnos.Include(t => t.Detalles).FirstOrDefaultAsync(t => t.Id == dto.TurnoId);
         if (turno == null) return NotFound();
+
+        // Security Fix: Prevent IDOR by verifying resource ownership
+        var isBarbero = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out int currentUserId);
+        var isAdmin = User.IsInRole("Admin");
+        if (!isAdmin && (!isBarbero || turno.BarberoId != currentUserId))
+        {
+            return Forbid();
+        }
 
         var servicios = await _db.Servicios
             .Where(s => dto.ServicioIds.Contains(s.Id) && s.Activo)
