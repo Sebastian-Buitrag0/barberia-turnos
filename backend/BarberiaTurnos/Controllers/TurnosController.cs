@@ -39,6 +39,7 @@ public class TurnosController : ControllerBase
 
     // GET /api/turnos/hoy
     [HttpGet("hoy")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetTurnosHoy()
     {
         var hoy = DateTime.UtcNow.Date;
@@ -66,6 +67,7 @@ public class TurnosController : ControllerBase
 
     // GET /api/turnos/cola
     [HttpGet("cola")]
+    [Authorize]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetCola()
     {
         var hoy = DateTime.UtcNow.Date;
@@ -93,6 +95,7 @@ public class TurnosController : ControllerBase
 
     // GET /api/turnos/porpagar
     [HttpGet("porpagar")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<TurnoResponseDto>>> GetPorPagar()
     {
         var hoy = DateTime.UtcNow.Date;
