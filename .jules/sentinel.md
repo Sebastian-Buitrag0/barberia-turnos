@@ -1,4 +1,4 @@
-## 2024-05-28 - Missing Authorization on Admin Endpoints
-**Vulnerability:** Several administrative endpoints (e.g., managing barbers in `UsuariosController`, manually registering turns in `TurnosController`) lacked `[Authorize(Roles = "Admin")]` attributes, allowing unauthenticated or under-privileged users to perform administrative actions.
-**Learning:** In ASP.NET Core, controllers without class-level `[Authorize]` attributes leave their endpoints public by default. Developers must explicitly secure every sensitive endpoint to prevent Broken Access Control.
-**Prevention:** Implement a secure-by-default approach by applying `[Authorize]` at the controller level or enforce authorization checks globally, then selectively use `[AllowAnonymous]` for public endpoints.
+## 2025-03-10 - Fixed Missing Authorization on Turnos Endpoints
+**Vulnerability:** The endpoints `GetTurnosHoy`, `GetPorPagar`, and `GetCola` in `TurnosController` returned Personally Identifiable Information (PII), such as the client's phone number, but lacked explicit authorization attributes.
+**Learning:** In ASP.NET Core, endpoints in controllers without class-level `[Authorize]` attributes are public by default. Relying purely on frontend routing (e.g., calling these endpoints only from Admin or Barbero views) does not secure the API against direct requests, leading to Broken Access Control.
+**Prevention:** Always explicitly secure every sensitive endpoint at the method level using `[Authorize]` or `[Authorize(Roles = "...")]` attributes to enforce access control irrespective of the calling client.
