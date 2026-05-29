@@ -49,7 +49,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(allowedOrigins)
-              .SetIsOriginAllowed(origin => true) // Allows any origin to work with credentials explicitly
+              // Security fix: Removed SetIsOriginAllowed(origin => true) to enforce allowedOrigins check
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR/Cookies if used
