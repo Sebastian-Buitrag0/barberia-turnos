@@ -2,3 +2,8 @@
 **Vulnerability:** Several administrative endpoints (e.g., managing barbers in `UsuariosController`, manually registering turns in `TurnosController`) lacked `[Authorize(Roles = "Admin")]` attributes, allowing unauthenticated or under-privileged users to perform administrative actions.
 **Learning:** In ASP.NET Core, controllers without class-level `[Authorize]` attributes leave their endpoints public by default. Developers must explicitly secure every sensitive endpoint to prevent Broken Access Control.
 **Prevention:** Implement a secure-by-default approach by applying `[Authorize]` at the controller level or enforce authorization checks globally, then selectively use `[AllowAnonymous]` for public endpoints.
+
+## 2024-05-28 - Twilio Webhook Validation Bypass in Production
+**Vulnerability:** The Twilio Webhook in `TwilioWebhookController` allowed requests to bypass signature validation entirely if the `Twilio:AuthToken` configuration was missing. While intended as a convenience for local development, this fail-open design could expose the webhook to unauthorized, spoofed requests in production environments if the environment variable was accidentally omitted.
+**Learning:** Fallback mechanisms intended for development (like skipping signature validation) must be explicitly gated to the development environment using `IWebHostEnvironment.IsDevelopment()`. Without this, missing configuration leads to a fail-open state rather than a secure fail-closed state.
+**Prevention:** Always use environment checks (e.g., `_env.IsDevelopment()`) for any code path that bypasses security controls. Ensure that missing critical configuration in production environments results in immediate failure (fail-closed) rather than default allowance.
