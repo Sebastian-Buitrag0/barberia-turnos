@@ -2,3 +2,8 @@
 **Vulnerability:** Several administrative endpoints (e.g., managing barbers in `UsuariosController`, manually registering turns in `TurnosController`) lacked `[Authorize(Roles = "Admin")]` attributes, allowing unauthenticated or under-privileged users to perform administrative actions.
 **Learning:** In ASP.NET Core, controllers without class-level `[Authorize]` attributes leave their endpoints public by default. Developers must explicitly secure every sensitive endpoint to prevent Broken Access Control.
 **Prevention:** Implement a secure-by-default approach by applying `[Authorize]` at the controller level or enforce authorization checks globally, then selectively use `[AllowAnonymous]` for public endpoints.
+
+## 2024-06-03 - Missing Authorization on Sensitive Get Endpoints Exposing PII
+**Vulnerability:** Several GET endpoints in `TurnosController` (`GetTurnosHoy`, `GetCola`, `GetPorPagar`) were returning `TurnoResponseDto` which contains PII (`Cliente.Telefono`) without proper authorization checks. These were publicly accessible, leading to an IDOR/Broken Access Control vulnerability where anyone could fetch the queue and client phone numbers.
+**Learning:** Endpoints that return Personally Identifiable Information (PII) such as phone numbers must be explicitly protected with `[Authorize]` or role-specific authorization (`[Authorize(Roles = "Admin")]`), even if they are just reading data. The frontend logic separating Admin, Barbero, and Cliente views can guide which endpoints need which level of authorization.
+**Prevention:** Review DTOs returned by all endpoints. If a DTO contains sensitive information, ensure the endpoint returning it has the appropriate `[Authorize]` attribute corresponding to the roles that are supposed to see that data.
