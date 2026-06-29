@@ -48,8 +48,9 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
+        // SECURE: Enforce explicitly allowed origins to prevent CORS bypass and CSRF vulnerabilities.
+        // DO NOT use .SetIsOriginAllowed(origin => true) alongside .AllowCredentials().
         policy.WithOrigins(allowedOrigins)
-              .SetIsOriginAllowed(origin => true) // Allows any origin to work with credentials explicitly
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Required for SignalR/Cookies if used

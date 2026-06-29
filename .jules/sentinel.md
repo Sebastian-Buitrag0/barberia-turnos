@@ -2,3 +2,8 @@
 **Vulnerability:** Several administrative endpoints (e.g., managing barbers in `UsuariosController`, manually registering turns in `TurnosController`) lacked `[Authorize(Roles = "Admin")]` attributes, allowing unauthenticated or under-privileged users to perform administrative actions.
 **Learning:** In ASP.NET Core, controllers without class-level `[Authorize]` attributes leave their endpoints public by default. Developers must explicitly secure every sensitive endpoint to prevent Broken Access Control.
 **Prevention:** Implement a secure-by-default approach by applying `[Authorize]` at the controller level or enforce authorization checks globally, then selectively use `[AllowAnonymous]` for public endpoints.
+
+## 2024-05-30 - Overly Permissive CORS with Credentials
+**Vulnerability:** The backend CORS configuration in `Program.cs` used `.SetIsOriginAllowed(origin => true)` alongside `.AllowCredentials()`, effectively allowing any origin to make cross-origin requests with credentials. This bypassed the explicit `AllowedOrigins` list and created a severe CSRF and data exposure vulnerability.
+**Learning:** When credentials (cookies, authorization headers, or TLS client certificates) are allowed, browsers forbid using the wildcard `*` for the `Access-Control-Allow-Origin` header. Using `.SetIsOriginAllowed(origin => true)` is a dangerous workaround that dynamically echoes the incoming `Origin` header back, defeating origin restrictions entirely.
+**Prevention:** Never use `.SetIsOriginAllowed(origin => true)` when `.AllowCredentials()` is enabled. Instead, explicitly define a strict list of allowed origins via `.WithOrigins(allowedOrigins)` and rely on the framework to correctly match and allow only those specific origins.
