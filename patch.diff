@@ -1,0 +1,26 @@
+--- backend/BarberiaTurnos/Controllers/TurnosController.cs
++++ backend/BarberiaTurnos/Controllers/TurnosController.cs
+@@ -39,6 +39,7 @@
+     }
+
+     // GET /api/turnos/hoy
++    [Authorize(Roles = "Admin")]
+     [HttpGet("hoy")]
+     public async Task<ActionResult<List<TurnoResponseDto>>> GetTurnosHoy()
+     {
+@@ -66,6 +67,7 @@
+     }
+
+     // GET /api/turnos/cola
++    [Authorize]
+     [HttpGet("cola")]
+     public async Task<ActionResult<List<TurnoResponseDto>>> GetCola()
+     {
+@@ -93,6 +95,7 @@
+     }
+
+     // GET /api/turnos/porpagar
++    [Authorize(Roles = "Admin")]
+     [HttpGet("porpagar")]
+     public async Task<ActionResult<List<TurnoResponseDto>>> GetPorPagar()
+     {
