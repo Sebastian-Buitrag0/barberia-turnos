@@ -11,15 +11,18 @@ public class TwilioWebhookController : ControllerBase
     private readonly IWhatsAppService _whatsApp;
     private readonly IConfiguration _config;
     private readonly ILogger<TwilioWebhookController> _logger;
+    private readonly IWebHostEnvironment _env;
 
     public TwilioWebhookController(
         IWhatsAppService whatsApp,
         IConfiguration config,
-        ILogger<TwilioWebhookController> logger)
+        ILogger<TwilioWebhookController> logger,
+        IWebHostEnvironment env)
     {
         _whatsApp = whatsApp;
         _config = config;
         _logger = logger;
+        _env = env;
     }
 
     /// <summary>
@@ -84,8 +87,15 @@ public class TwilioWebhookController : ControllerBase
         var authToken = _config["Twilio:AuthToken"];
         if (string.IsNullOrEmpty(authToken))
         {
-            // If Twilio isn't configured, skip validation (local dev fallback)
-            return true;
+            if (_env.IsDevelopment())
+            {
+                // In development, if Twilio isn't configured, skip validation (local dev fallback)
+                return true;
+            }
+
+            // In production, missing token is a configuration error and should fail securely
+            _logger.LogError("Twilio:AuthToken is missing in production. Failing webhook validation securely.");
+            return false;
         }
 
         try
