@@ -11,15 +11,18 @@ public class TwilioWebhookController : ControllerBase
     private readonly IWhatsAppService _whatsApp;
     private readonly IConfiguration _config;
     private readonly ILogger<TwilioWebhookController> _logger;
+    private readonly IWebHostEnvironment _env;
 
     public TwilioWebhookController(
         IWhatsAppService whatsApp,
         IConfiguration config,
-        ILogger<TwilioWebhookController> logger)
+        ILogger<TwilioWebhookController> logger,
+        IWebHostEnvironment env)
     {
         _whatsApp = whatsApp;
         _config = config;
         _logger = logger;
+        _env = env;
     }
 
     /// <summary>
@@ -84,8 +87,15 @@ public class TwilioWebhookController : ControllerBase
         var authToken = _config["Twilio:AuthToken"];
         if (string.IsNullOrEmpty(authToken))
         {
-            // If Twilio isn't configured, skip validation (local dev fallback)
-            return true;
+            // Only allow bypassing validation in development mode
+            if (_env.IsDevelopment())
+            {
+                _logger.LogWarning("Twilio:AuthToken is not configured. Skipping signature validation because environment is Development.");
+                return true;
+            }
+
+            _logger.LogError("CRITICAL SECURITY RISK: Twilio:AuthToken is not configured in a non-development environment. Failing closed.");
+            return false;
         }
 
         try
