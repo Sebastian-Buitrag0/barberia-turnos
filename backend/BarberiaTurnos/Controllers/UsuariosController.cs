@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using BarberiaTurnos.Data;
 using BarberiaTurnos.Models;
 using BarberiaTurnos.DTOs;
@@ -29,7 +30,7 @@ public class UsuariosController : ControllerBase
     {
         var barberos = await _db.Usuarios
             .Where(u => u.Rol == "Barbero")
-            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.Pin, u.IsAvailable))
+            .Select(u => new UsuarioAdminResponseDto(u.Id, u.Nombre, u.Rol, u.IsAvailable))
             .ToListAsync();
         
         return Ok(barberos);
@@ -40,6 +41,9 @@ public class UsuariosController : ControllerBase
     [HttpPost("barberos")]
     public async Task<ActionResult<UsuarioAdminResponseDto>> CrearBarbero([FromBody] CrearModificarBarberoDto dto)
     {
+        if (string.IsNullOrEmpty(dto.Pin))
+            return BadRequest(new { message = "El PIN es obligatorio para nuevos usuarios." });
+
         if (await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
             return BadRequest(new { message = "El PIN ya está en uso." });
 
@@ -54,7 +58,7 @@ public class UsuariosController : ControllerBase
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBarberosAdmin), new { id = nuevoBarbero.Id }, 
-            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.Pin, nuevoBarbero.IsAvailable));
+            new UsuarioAdminResponseDto(nuevoBarbero.Id, nuevoBarbero.Nombre, nuevoBarbero.Rol, nuevoBarbero.IsAvailable));
     }
 
     // PUT: api/usuarios/barberos/{id}
@@ -67,11 +71,15 @@ public class UsuariosController : ControllerBase
         if (barbero == null || barbero.Rol != "Barbero")
             return NotFound(new { message = "Barbero no encontrado." });
 
-        if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
-            return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+        if (!string.IsNullOrEmpty(dto.Pin))
+        {
+            if (barbero.Pin != dto.Pin && await _db.Usuarios.AnyAsync(u => u.Pin == dto.Pin))
+                return BadRequest(new { message = "El PIN ya está en uso por otro usuario." });
+
+            barbero.Pin = dto.Pin;
+        }
 
         barbero.Nombre = dto.Nombre;
-        barbero.Pin = dto.Pin;
 
         await _db.SaveChangesAsync();
 
@@ -102,7 +110,7 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/usuarios/me/disponibilidad
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Barbero")]
+    [Authorize(Roles = "Barbero")]
     [HttpPost("me/disponibilidad")]
     public async Task<ActionResult> ToggleDisponibilidad()
     {
