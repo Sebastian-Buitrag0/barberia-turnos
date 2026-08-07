@@ -300,6 +300,16 @@ public class TurnosController : ControllerBase
         var turno = await _db.Turnos.FindAsync(dto.TurnoId);
         if (turno == null) return NotFound();
 
+        // Security check: only the assigned barbero or an Admin can modify this
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+
+        if (turno.BarberoId != userId && !isAdmin)
+        {
+            return Forbid();
+        }
+
         turno.Estado = "EnSilla";
         turno.FechaInicioAtencion = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -318,6 +328,16 @@ public class TurnosController : ControllerBase
     {
         var turno = await _db.Turnos.Include(t => t.Detalles).FirstOrDefaultAsync(t => t.Id == dto.TurnoId);
         if (turno == null) return NotFound();
+
+        // Security check: only the assigned barbero or an Admin can modify this
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+        var isAdmin = User.IsInRole("Admin");
+
+        if (turno.BarberoId != userId && !isAdmin)
+        {
+            return Forbid();
+        }
 
         var servicios = await _db.Servicios
             .Where(s => dto.ServicioIds.Contains(s.Id) && s.Activo)
