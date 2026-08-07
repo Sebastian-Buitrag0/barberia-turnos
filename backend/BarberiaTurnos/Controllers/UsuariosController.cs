@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -102,7 +103,7 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/usuarios/me/disponibilidad
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Barbero")]
+    [Authorize(Roles = "Barbero")]
     [HttpPost("me/disponibilidad")]
     public async Task<ActionResult> ToggleDisponibilidad()
     {
