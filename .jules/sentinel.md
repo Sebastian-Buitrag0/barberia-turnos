@@ -12,3 +12,8 @@
 **Vulnerability:** A fail-open vulnerability existed in `TwilioWebhookController.ValidateTwilioRequest` where missing Twilio configuration (`Twilio:AuthToken`) bypassed security signature validation unconditionally, applying development fallback behavior even in production.
 **Learning:** Security fallback logic designed for local development must always be explicitly guarded by environment checks (e.g., `_env.IsDevelopment()`). Failing to do so creates a state where unconfigured production deployments run without security controls, allowing unauthorized requests to pass.
 **Prevention:** Never use missing configuration as a trigger for bypassing security checks unless explicitly verifying a safe environment. Production systems should default to "fail securely" (e.g., returning 403 Forbidden) when required security configuration is absent.
+
+## 2026-08-07 - Insecure Direct Object Reference (IDOR) on Appointment Endpoints
+**Vulnerability:** The endpoints `EnSilla` and `Finalizar` in `TurnosController` allowed any authenticated user to modify any turn, including turns assigned to other barbers, because they only checked if the user was authorized without verifying resource ownership.
+**Learning:** Just because an endpoint has an `[Authorize]` attribute does not mean the user is authorized to perform the action on the specific resource. Authorization checks must verify that the user owns the resource or has administrative privileges.
+**Prevention:** When modifying specific resources, verify the `NameIdentifier` claim against the resource owner's ID (e.g., `turno.BarberoId == barberoId`), with an exception for users in the 'Admin' role. Use `Forbid()` to return a 403 Forbidden response when the check fails.
