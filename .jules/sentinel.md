@@ -12,3 +12,13 @@
 **Vulnerability:** A fail-open vulnerability existed in `TwilioWebhookController.ValidateTwilioRequest` where missing Twilio configuration (`Twilio:AuthToken`) bypassed security signature validation unconditionally, applying development fallback behavior even in production.
 **Learning:** Security fallback logic designed for local development must always be explicitly guarded by environment checks (e.g., `_env.IsDevelopment()`). Failing to do so creates a state where unconfigured production deployments run without security controls, allowing unauthorized requests to pass.
 **Prevention:** Never use missing configuration as a trigger for bypassing security checks unless explicitly verifying a safe environment. Production systems should default to "fail securely" (e.g., returning 403 Forbidden) when required security configuration is absent.
+
+## 2024-05-30 - Overly Permissive CORS Configuration
+**Vulnerability:** The CORS policy used `.SetIsOriginAllowed(origin => true)` alongside `.AllowCredentials()`. This bypasses origin restrictions, potentially allowing malicious sites to make cross-origin requests with the user's credentials.
+**Learning:** Using a wildcard origin policy while allowing credentials creates a significant security risk by disabling standard browser protections against cross-origin data exposure.
+**Prevention:** Remove `.SetIsOriginAllowed(origin => true)` and explicitly configure the allowed origins in `WithOrigins()` to ensure that only trusted domains can interact with the API while sending credentials.
+
+## 2024-05-30 - IDOR in Modifying Turnos
+**Vulnerability:** The `EnSilla` and `Finalizar` endpoints in `TurnosController` permitted any authenticated user to update the status of any turn, missing a validation check to restrict this action solely to the barber assigned to the turn (or an Admin).
+**Learning:** Depending solely on the client to send the right ID is insecure. Endpoints handling specific resources must cross-check the authenticated user's ID against the resource's owner ID to prevent Insecure Direct Object References.
+**Prevention:** Implement resource ownership checks (e.g., verifying `User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value` matches `Turno.BarberoId`) before processing updates, returning `Forbid()` for unauthorized modifications.
